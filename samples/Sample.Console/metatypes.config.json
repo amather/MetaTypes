@@ -1,0 +1,10 @@
+{
+  "MetaTypes.Generator": {
+    "EnableEfCoreDetection": true,
+    "EnableDiagnosticFiles": true
+  },
+  "MetaTypes.Generator.EfCore": {
+    "EnableBaseDetection": true,
+    "EnableDiagnosticFiles": true
+  }
+}

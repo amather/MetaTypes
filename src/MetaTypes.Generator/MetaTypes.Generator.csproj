@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.5.0" PrivateAssets="all" />
+    <PackageReference Include="System.Text.Json" Version="8.0.0" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../MetaTypes.Generator.Common/CoreMetaTypeGenerator.cs" Link="Common/CoreMetaTypeGenerator.cs" />
+    <Compile Include="../MetaTypes.Generator.Common/DiscoveredType.cs" Link="Common/DiscoveredType.cs" />
+    <Compile Include="../MetaTypes.Generator.Common/UnifiedTypeDiscovery.cs" Link="Common/UnifiedTypeDiscovery.cs" />
+    <Compile Include="../MetaTypes.Generator.Common/CommonDiscoveryMethods.cs" Link="Common/CommonDiscoveryMethods.cs" />
+    <Compile Include="../MetaTypes.Generator.Common/GeneratorConfiguration.cs" Link="Common/GeneratorConfiguration.cs" />
+    <Compile Include="../MetaTypes.Generator.EfCore.Common/EfCoreDiscoveryMethods.cs" Link="EfCore/EfCoreDiscoveryMethods.cs" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    
+    <!-- Keep generated files for debugging -->
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    
+    <!-- Enable EfCore MetaType detection -->
+    <MetaTypesEfCoreDetection>true</MetaTypesEfCoreDetection>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/MetaTypes.Abstractions/MetaTypes.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

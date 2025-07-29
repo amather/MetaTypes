@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    
+    <!-- Custom assembly name for demonstration -->
+    <MetaTypeAssemblyName>SampleAuth</MetaTypeAssemblyName>
+    
+    <!-- Enable EfCore MetaType detection -->
+    <MetaTypesEfCoreDetection>true</MetaTypesEfCoreDetection>
+    
+    <!-- Keep generated files for debugging -->
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/MetaTypes.Abstractions/MetaTypes.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>
