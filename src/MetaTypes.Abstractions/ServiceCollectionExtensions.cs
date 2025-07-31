@@ -18,6 +18,9 @@ public static class ServiceCollectionExtensions
             services.AddSingleton(metaType.GetType(), metaType);
         }
         
+        // Also register the provider itself
+        services.AddSingleton<IMetaTypeProvider>(provider);
+        
         return services;
     }
 }
