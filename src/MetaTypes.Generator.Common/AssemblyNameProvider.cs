@@ -4,36 +4,40 @@ using MetaTypes.Abstractions;
 namespace MetaTypes.Generator.Common;
 
 /// <summary>
-/// Standard implementation of assembly name detection logic used by MetaTypes.
-/// This implementation uses the proven logic from MetaTypes for consistent
-/// assembly name handling across all source generators.
+/// Default implementation of assembly name handling using MetaTypes' superior approach.
+/// This is the exact same logic used by MetaTypes generators - respects real assembly names
+/// instead of aggressive suffix removal.
 /// </summary>
 public class AssemblyNameProvider : IAssemblyNameProvider
 {
+    private static readonly Lazy<AssemblyNameProvider> _instance = new(() => new AssemblyNameProvider());
+    
     /// <summary>
     /// Singleton instance for shared usage across generators.
     /// </summary>
-    public static AssemblyNameProvider Instance { get; } = new();
+    public static AssemblyNameProvider Instance => _instance.Value;
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Gets the target namespace using MetaTypes' assembly name logic:
+    /// - Use explicit configuration if provided (config.AssemblyName)
+    /// - Otherwise use the actual assembly name (respecting real assembly names)
+    /// 
+    /// This follows MetaTypes' approach from MetaTypeSourceGenerator.cs lines 87-88.
+    /// </summary>
     public string GetTargetNamespace(Compilation compilation, IGeneratorConfiguration config)
     {
-        var assemblyName = GetAssemblyName(compilation);
+        var assemblyName = compilation.AssemblyName ?? "UnknownAssembly";
         return GetTargetNamespace(assemblyName, config);
     }
 
-    /// <inheritdoc />
-    public string GetAssemblyName(Compilation compilation)
-    {
-        return compilation.AssemblyName ?? "UnknownAssembly";
-    }
-
-    /// <inheritdoc />
+    /// <summary>
+    /// Gets the target namespace when assembly name is already known.
+    /// Uses MetaTypes' logic: explicit config override, or actual assembly name.
+    /// </summary>
     public string GetTargetNamespace(string assemblyName, IGeneratorConfiguration config)
     {
-        // Use configured override if provided, otherwise use assembly name directly
-        // This follows MetaTypes' proven logic: prefer explicit configuration,
-        // fallback to actual assembly name without aggressive suffix removal
+        // Use assembly name as namespace, or configured override if provided
+        // This is the exact MetaTypes logic from MetaTypeSourceGenerator.cs
         return !string.IsNullOrEmpty(config.AssemblyName) ? config.AssemblyName! : assemblyName;
     }
 }

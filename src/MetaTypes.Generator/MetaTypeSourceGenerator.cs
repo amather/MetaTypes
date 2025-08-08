@@ -84,8 +84,8 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
             var assemblyName = assemblyGroup.Key;
             var typesInAssembly = assemblyGroup.Select(dt => dt.TypeSymbol).ToList();
 
-            // Use assembly name as namespace, or configured override if provided
-            var targetNamespace = !string.IsNullOrEmpty(config.AssemblyName) ? config.AssemblyName! : assemblyName;
+            // Use MetaTypes' shared assembly name logic via AssemblyNameProvider
+            var targetNamespace = AssemblyNameProvider.Instance.GetTargetNamespace(assemblyName, config);
             
             // Generate MetaTypes provider class for this assembly
             var providerSource = CoreMetaTypeGenerator.GenerateMetaTypesProvider(targetNamespace, typesInAssembly);

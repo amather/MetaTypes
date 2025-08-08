@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using MetaTypes.Abstractions;
 
 namespace MetaTypes.Generator.Common;
 
@@ -19,7 +20,7 @@ public class MetaTypesGeneratorConfiguration
 /// <summary>
 /// Configuration options for the base MetaTypes generator
 /// </summary>
-public class BaseGeneratorOptions
+public class BaseGeneratorOptions : IGeneratorConfiguration
 {
     [JsonPropertyName("EnableEfCoreDetection")]
     public bool EnableEfCoreDetection { get; set; } = true;
@@ -36,7 +37,7 @@ public class BaseGeneratorOptions
 /// <summary>
 /// Configuration options for the EfCore MetaTypes generator
 /// </summary>
-public class EfCoreGeneratorOptions
+public class EfCoreGeneratorOptions : IGeneratorConfiguration
 {
     [JsonPropertyName("EnableBaseDetection")]
     public bool EnableBaseDetection { get; set; } = true;
@@ -66,7 +67,8 @@ public static class ConfigurationLoader
         var configFile = additionalFiles.FirstOrDefault(file =>
         {
             var options = configProvider.GetOptions(file);
-            return options.TryGetValue("build_metadata.AdditionalFiles.Type", out var type) &&
+            return (options.TryGetValue("build_metadata.AdditionalFiles.GeneratorConfiguration", out var type) ||
+                    options.TryGetValue("build_metadata.AdditionalFiles.Type", out type)) &&
                    type == "MetaTypes.Generator.Options";
         });
 

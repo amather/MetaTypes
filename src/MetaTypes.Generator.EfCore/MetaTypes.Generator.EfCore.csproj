@@ -17,12 +17,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="../MetaTypes.Generator.Common/CoreMetaTypeGenerator.cs" Link="Common/CoreMetaTypeGenerator.cs" />
-    <Compile Include="../MetaTypes.Generator.Common/DiscoveredType.cs" Link="Common/DiscoveredType.cs" />
-    <Compile Include="../MetaTypes.Generator.Common/UnifiedTypeDiscovery.cs" Link="Common/UnifiedTypeDiscovery.cs" />
-    <Compile Include="../MetaTypes.Generator.Common/CommonDiscoveryMethods.cs" Link="Common/CommonDiscoveryMethods.cs" />
-    <Compile Include="../MetaTypes.Generator.Common/GeneratorConfiguration.cs" Link="Common/GeneratorConfiguration.cs" />
-    <Compile Include="../MetaTypes.Generator.EfCore.Common/EfCoreDiscoveryMethods.cs" Link="EfCore/EfCoreDiscoveryMethods.cs" />
+    <Compile Include="../MetaTypes.Generator.Common/**/*.cs" Exclude="../MetaTypes.Generator.Common/obj/**/*.cs;../MetaTypes.Generator.Common/bin/**/*.cs" LinkBase="Common" />
+    <Compile Include="../MetaTypes.Abstractions/**/*.cs" Exclude="../MetaTypes.Abstractions/obj/**/*.cs;../MetaTypes.Abstractions/bin/**/*.cs;../MetaTypes.Abstractions/ServiceCollectionExtensions.cs;../MetaTypes.Abstractions/ServiceProviderExtensions.cs" LinkBase="Abstractions" />
+    <Compile Include="../MetaTypes.Generator.EfCore.Common/**/*.cs" Exclude="../MetaTypes.Generator.EfCore.Common/obj/**/*.cs;../MetaTypes.Generator.EfCore.Common/bin/**/*.cs" LinkBase="EfCore" />
   </ItemGroup>
 
 </Project>

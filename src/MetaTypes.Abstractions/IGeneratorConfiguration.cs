@@ -1,14 +1,14 @@
 namespace MetaTypes.Abstractions;
 
 /// <summary>
-/// Common interface for generator configuration objects that need assembly name detection.
-/// Allows different source generators to share the same assembly name detection logic.
+/// Interface for generator configurations that support assembly name overrides.
+/// This allows generators to use MetaTypes' superior assembly name logic.
 /// </summary>
 public interface IGeneratorConfiguration
 {
     /// <summary>
-    /// Override assembly name for namespace generation.
-    /// If null, the assembly name detection logic will be used.
+    /// Optional assembly name override. If provided, this will be used as the target namespace
+    /// instead of the actual assembly name.
     /// </summary>
     string? AssemblyName { get; }
 }
