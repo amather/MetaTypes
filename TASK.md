@@ -59,15 +59,20 @@ Transform MetaTypes from competing generators to an orchestrated system where mu
 - [ ] **4.3** Create configuration examples and documentation
 - [ ] **4.4** Update SHARED_CODE_USERS.md with configuration guide
 
-### Phase 5: Testing & Integration
-- [ ] **5.1** Update sample projects with new configuration
-- [ ] **5.2** Test generator coordination scenarios:
+### Phase 5: Sample Project Reconfiguration
+- [ ] **5.1** Reconfigure sample projects to follow MetaTypes approach:
+  - [ ] Move generators from library projects to main consumer project (Sample.Console)
+  - [ ] Configure Sample.Console to detect/generate for all referenced libraries
+  - [ ] Update metatypes.config.json to coordinate multiple generators
+  - [ ] Ensure cross-assembly discovery works properly
+- [ ] **5.2** Update sample projects with new configuration format
+- [ ] **5.3** Test generator coordination scenarios:
   - [ ] Base generator only
   - [ ] EfCore generator only (should fail gracefully)
   - [ ] Both generators with proper coordination
   - [ ] Multiple discovery methods enabled
-- [ ] **5.3** Update diagnostics to show configuration decisions
-- [ ] **5.4** Verify LinkBase approach still works with new architecture
+- [ ] **5.4** Update diagnostics to show configuration decisions
+- [ ] **5.5** Verify LinkBase approach still works with new architecture
 
 ### Phase 6: Documentation & Examples
 - [ ] **6.1** Update README.md with new configuration approach
@@ -89,8 +94,11 @@ To resume this task after interruption:
 ✅ Configuration clearly defines discovery and generation responsibilities  
 ✅ Generators can be composed (Base + EfCore + Custom)  
 ✅ Shared configuration format with generator-specific extensions  
-✅ Backwards compatibility with existing projects  
+✅ **Sample projects compile and run successfully**  
+✅ **Sample.Console generates MetaTypes for all referenced libraries (Sample.Business, Sample.Auth)**  
+✅ **Cross-assembly discovery works from main consumer project**  
 ✅ Clear error messages when configuration is invalid  
+✅ Backwards compatibility path documented (if not maintained)  
 
 ## 🚨 Breaking Changes Expected
 
