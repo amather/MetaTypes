@@ -10,6 +10,12 @@ namespace MetaTypes.Generator.Common;
 /// </summary>
 public class MetaTypesGeneratorConfiguration
 {
+    /// <summary>
+    /// Top-level assembly name shared by all generators
+    /// </summary>
+    [JsonPropertyName("AssemblyName")]
+    public string? AssemblyName { get; set; }
+    
     [JsonPropertyName("MetaTypes.Generator")]
     public BaseGeneratorOptions? BaseGenerator { get; set; }
     
@@ -18,37 +24,113 @@ public class MetaTypesGeneratorConfiguration
 }
 
 /// <summary>
-/// Configuration options for the base MetaTypes generator
+/// Configuration for type discovery options
 /// </summary>
-public class BaseGeneratorOptions : IGeneratorConfiguration
+public class DiscoveryConfig : IDiscoveryConfig
 {
-    [JsonPropertyName("EnableEfCoreDetection")]
-    public bool EnableEfCoreDetection { get; set; } = true;
+    [JsonPropertyName("Syntax")]
+    public bool Syntax { get; set; } = true;
     
-    [JsonPropertyName("EnableDiagnosticFiles")]
-    public bool EnableDiagnosticFiles { get; set; } = true;
+    [JsonPropertyName("CrossAssembly")]
+    public bool CrossAssembly { get; set; } = false;
+    
+    [JsonPropertyName("Methods")]
+    public DiscoveryMethodsConfig Methods { get; set; } = new();
+    
+    IDiscoveryMethodsConfig IDiscoveryConfig.Methods => Methods;
+}
+
+/// <summary>
+/// Configuration for discovery methods
+/// </summary>
+public class DiscoveryMethodsConfig : IDiscoveryMethodsConfig
+{
+    [JsonPropertyName("MetaTypesAttributes")]
+    public bool MetaTypesAttributes { get; set; } = true;
+    
+    [JsonPropertyName("MetaTypesReferences")]
+    public bool MetaTypesReferences { get; set; } = true;
+}
+
+/// <summary>
+/// Configuration for generation options
+/// </summary>
+public class GenerationConfig : IGenerationConfig
+{
+    [JsonPropertyName("BaseMetaTypes")]
+    public bool BaseMetaTypes { get; set; } = false; // Default: false
+}
+
+/// <summary>
+/// Base generator configuration section
+/// </summary>
+public class GeneratorConfigSection : IGeneratorConfigSection
+{
+    [JsonPropertyName("Discovery")]
+    public DiscoveryConfig Discovery { get; set; } = new();
+    
+    [JsonPropertyName("Generation")]
+    public GenerationConfig Generation { get; set; } = new();
     
     [JsonPropertyName("AssemblyName")]
     public string? AssemblyName { get; set; }
+    
+    IDiscoveryConfig IGeneratorConfigSection.Discovery => Discovery;
+    IGenerationConfig IGeneratorConfigSection.Generation => Generation;
+}
+
+/// <summary>
+/// Configuration options for the base MetaTypes generator
+/// </summary>
+public class BaseGeneratorOptions : GeneratorConfigSection
+{
+    [JsonPropertyName("EnableDiagnosticFiles")]
+    public bool EnableDiagnosticFiles { get; set; } = true;
+    
+    // Legacy support - will be removed in future versions
+    [JsonPropertyName("EnableEfCoreDetection")]
+    public bool EnableEfCoreDetection { get; set; } = true;
     
     public string? DebugInfo { get; set; }
 }
 
 /// <summary>
-/// Configuration options for the EfCore MetaTypes generator
+/// Configuration options for the EfCore MetaTypes generator  
 /// </summary>
-public class EfCoreGeneratorOptions : IGeneratorConfiguration
+public class EfCoreGeneratorOptions : GeneratorConfigSection
 {
-    [JsonPropertyName("EnableBaseDetection")]
-    public bool EnableBaseDetection { get; set; } = true;
-    
     [JsonPropertyName("EnableDiagnosticFiles")]
     public bool EnableDiagnosticFiles { get; set; } = true;
     
-    [JsonPropertyName("AssemblyName")]
-    public string? AssemblyName { get; set; }
+    // Legacy support - will be removed in future versions
+    [JsonPropertyName("EnableBaseDetection")]
+    public bool EnableBaseDetection { get; set; } = true;
+    
+    [JsonPropertyName("EfCore")]
+    public EfCoreSpecificConfig? EfCore { get; set; }
     
     public string? DebugInfo { get; set; }
+}
+
+/// <summary>
+/// EF Core specific configuration extensions
+/// </summary>
+public class EfCoreSpecificConfig
+{
+    [JsonPropertyName("RequireBaseTypes")]
+    public bool RequireBaseTypes { get; set; } = true;
+}
+
+/// <summary>
+/// Extended discovery methods for EF Core
+/// </summary>
+public class EfCoreDiscoveryMethodsConfig : DiscoveryMethodsConfig
+{
+    [JsonPropertyName("EfCoreEntities")]
+    public bool EfCoreEntities { get; set; } = true;
+    
+    [JsonPropertyName("DbContextScanning")]  
+    public bool DbContextScanning { get; set; } = true;
 }
 
 /// <summary>
@@ -78,6 +160,9 @@ public static class ConfigurationLoader
             var config = ParseConfiguration(content);
             if (config != null)
             {
+                // Merge top-level AssemblyName into generator sections if they don't have their own
+                MergeAssemblyNames(config);
+                
                 // Add debug info showing successful load
                 if (config.BaseGenerator != null)
                     config.BaseGenerator.DebugInfo = $"JSON_CONFIG_LOADED_FROM_{configFile.Path}";
@@ -94,6 +179,38 @@ public static class ConfigurationLoader
         if (defaultConfig.EfCoreGenerator != null)
             defaultConfig.EfCoreGenerator.DebugInfo = "JSON_CONFIG_NOT_FOUND_USING_DEFAULTS";
         return defaultConfig;
+    }
+    
+    /// <summary>
+    /// Loads configuration for a specific generator by name
+    /// </summary>
+    public static TConfig? LoadGeneratorConfig<TConfig>(
+        ImmutableArray<Microsoft.CodeAnalysis.AdditionalText> additionalFiles,
+        Microsoft.CodeAnalysis.Diagnostics.AnalyzerConfigOptionsProvider configProvider,
+        string generatorName) where TConfig : class, IGeneratorConfigSection
+    {
+        var fullConfig = LoadFromAdditionalFiles(additionalFiles, configProvider);
+        
+        return generatorName switch
+        {
+            "MetaTypes.Generator" => fullConfig.BaseGenerator as TConfig,
+            "MetaTypes.Generator.EfCore" => fullConfig.EfCoreGenerator as TConfig,
+            _ => null
+        };
+    }
+    
+    /// <summary>
+    /// Merges top-level AssemblyName into generator sections that don't have their own
+    /// </summary>
+    private static void MergeAssemblyNames(MetaTypesGeneratorConfiguration config)
+    {
+        if (string.IsNullOrEmpty(config.AssemblyName)) return;
+        
+        if (config.BaseGenerator?.AssemblyName == null)
+            config.BaseGenerator!.AssemblyName = config.AssemblyName;
+            
+        if (config.EfCoreGenerator?.AssemblyName == null) 
+            config.EfCoreGenerator!.AssemblyName = config.AssemblyName;
     }
 
     /// <summary>
@@ -131,13 +248,47 @@ public static class ConfigurationLoader
         {
             BaseGenerator = new BaseGeneratorOptions
             {
+                // Legacy compatibility
                 EnableEfCoreDetection = true,
-                EnableDiagnosticFiles = true
+                EnableDiagnosticFiles = true,
+                
+                // New orchestrated configuration - base generator should generate base types by default
+                Generation = new GenerationConfig { BaseMetaTypes = true },
+                Discovery = new DiscoveryConfig 
+                { 
+                    Syntax = true, 
+                    CrossAssembly = false,
+                    Methods = new DiscoveryMethodsConfig
+                    {
+                        MetaTypesAttributes = true,
+                        MetaTypesReferences = true
+                    }
+                }
             },
             EfCoreGenerator = new EfCoreGeneratorOptions
             {
+                // Legacy compatibility
                 EnableBaseDetection = true,
-                EnableDiagnosticFiles = true
+                EnableDiagnosticFiles = true,
+                
+                // New orchestrated configuration - EfCore generator should NOT generate base types by default
+                Generation = new GenerationConfig { BaseMetaTypes = false },
+                Discovery = new DiscoveryConfig 
+                { 
+                    Syntax = true, 
+                    CrossAssembly = true, // EfCore often needs cross-assembly discovery
+                    Methods = new EfCoreDiscoveryMethodsConfig
+                    {
+                        MetaTypesAttributes = true,
+                        MetaTypesReferences = false, // Let base generator handle this
+                        EfCoreEntities = true,
+                        DbContextScanning = true
+                    }
+                },
+                EfCore = new EfCoreSpecificConfig
+                {
+                    RequireBaseTypes = true
+                }
             }
         };
     }
