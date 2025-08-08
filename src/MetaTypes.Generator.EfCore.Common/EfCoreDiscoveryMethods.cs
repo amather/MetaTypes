@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using MetaTypes.Generator.Common;
+using MetaTypes.Abstractions;
 
 namespace MetaTypes.Generator.EfCore.Common;
 
@@ -85,7 +86,40 @@ public static class EfCoreDiscoveryMethods
     }
     
     /// <summary>
+    /// Gets EfCore discovery methods based on configuration.
+    /// </summary>
+    public static IEnumerable<TypeDiscoverMethod> GetConfiguredEfCoreDiscoveryMethods(
+        EfCoreDiscoveryMethodsConfig config, 
+        IDiscoveryConfig discoveryConfig)
+    {
+        var methods = new List<TypeDiscoverMethod>();
+        
+        if (config.EfCoreEntities && discoveryConfig.Syntax)
+        {
+            methods.Add(DiscoverTableEntityTypesSyntax);
+        }
+        
+        if (config.DbContextScanning)
+        {
+            // DbContext scanning can discover both local and referenced entities
+            methods.Add(DiscoverDbContextEntityTypes);
+        }
+        
+        return methods;
+    }
+    
+    /// <summary>
+    /// Registers EfCore discovery methods with the unified discovery system.
+    /// Should be called by generators that have access to EfCore.Common.
+    /// </summary>
+    public static void RegisterWithUnifiedDiscovery()
+    {
+        UnifiedTypeDiscovery.RegisterEfCoreMethodProvider(GetConfiguredEfCoreDiscoveryMethods);
+    }
+    
+    /// <summary>
     /// Gets the standard EfCore discovery methods.
+    /// Legacy method - prefer GetConfiguredEfCoreDiscoveryMethods
     /// </summary>
     public static TypeDiscoverMethod[] GetEfCoreDiscoveryMethods()
     {
