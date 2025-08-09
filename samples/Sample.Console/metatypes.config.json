@@ -1,9 +1,31 @@
 {
   "MetaTypes.Generator": {
-    "EnableEfCoreDetection": true,
-    "EnableDiagnosticFiles": true
+    "Discovery": {
+      "Syntax": true,
+      "CrossAssembly": true,
+      "Methods": {
+        "MetaTypesAttributes": true,
+        "MetaTypesReferences": true
+      }
+    },
+    "Generation": {
+      "BaseMetaTypes": true
+    },
+    "EnableDiagnosticFiles": true,
+    "EnableEfCoreDetection": true
   },
   "MetaTypes.Generator.EfCore": {
+    "Discovery": {
+      "Syntax": true,
+      "CrossAssembly": true,
+      "Methods": {
+        "EfCoreEntities": true,
+        "DbContextScanning": true
+      }
+    },
+    "EfCore": {
+      "RequireBaseTypes": true
+    },
     "EnableBaseDetection": true,
     "EnableDiagnosticFiles": true
   }

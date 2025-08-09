@@ -230,7 +230,13 @@ public static class ConfigurationLoader
                 ReadCommentHandling = JsonCommentHandling.Skip
             };
             
-            return JsonSerializer.Deserialize<MetaTypesGeneratorConfiguration>(jsonContent!, options);
+            var parsedConfig = JsonSerializer.Deserialize<MetaTypesGeneratorConfiguration>(jsonContent!, options);
+            if (parsedConfig == null)
+                return null;
+                
+            // Merge with defaults to ensure all required properties are set
+            var defaultConfig = GetDefaultConfiguration();
+            return MergeConfigurations(defaultConfig, parsedConfig);
         }
         catch
         {
@@ -238,6 +244,56 @@ public static class ConfigurationLoader
             return null;
         }
     }
+    
+    /// <summary>
+    /// Merges parsed configuration with defaults, preferring values from parsed config
+    /// </summary>
+    private static MetaTypesGeneratorConfiguration MergeConfigurations(
+        MetaTypesGeneratorConfiguration defaultConfig,
+        MetaTypesGeneratorConfiguration parsedConfig)
+    {
+        // Merge BaseGenerator settings
+        if (parsedConfig.BaseGenerator != null && defaultConfig.BaseGenerator != null)
+        {
+            // Preserve parsed values, use defaults for missing ones
+            if (parsedConfig.BaseGenerator.Discovery == null)
+                parsedConfig.BaseGenerator.Discovery = defaultConfig.BaseGenerator.Discovery;
+            if (parsedConfig.BaseGenerator.Generation == null)
+                parsedConfig.BaseGenerator.Generation = defaultConfig.BaseGenerator.Generation;
+        }
+        else if (parsedConfig.BaseGenerator == null)
+        {
+            parsedConfig.BaseGenerator = defaultConfig.BaseGenerator;
+        }
+        
+        // Merge EfCoreGenerator settings  
+        if (parsedConfig.EfCoreGenerator != null && defaultConfig.EfCoreGenerator != null)
+        {
+            // Preserve parsed values, use defaults for missing ones
+            if (parsedConfig.EfCoreGenerator.Discovery == null)
+            {
+                parsedConfig.EfCoreGenerator.Discovery = defaultConfig.EfCoreGenerator.Discovery;
+            }
+            else if (!(parsedConfig.EfCoreGenerator.Discovery.Methods is EfCoreDiscoveryMethodsConfig))
+            {
+                // If Methods was not parsed as EfCoreDiscoveryMethodsConfig, use the default
+                // This happens because JSON deserializer doesn't know to use EfCoreDiscoveryMethodsConfig
+                parsedConfig.EfCoreGenerator.Discovery.Methods = defaultConfig.EfCoreGenerator.Discovery.Methods;
+            }
+            
+            if (parsedConfig.EfCoreGenerator.Generation == null)
+                parsedConfig.EfCoreGenerator.Generation = defaultConfig.EfCoreGenerator.Generation;
+            if (parsedConfig.EfCoreGenerator.EfCore == null)
+                parsedConfig.EfCoreGenerator.EfCore = defaultConfig.EfCoreGenerator.EfCore;
+        }
+        else if (parsedConfig.EfCoreGenerator == null)
+        {
+            parsedConfig.EfCoreGenerator = defaultConfig.EfCoreGenerator;
+        }
+        
+        return parsedConfig;
+    }
+    
     
     /// <summary>
     /// Gets default configuration when no config file is found
@@ -252,12 +308,13 @@ public static class ConfigurationLoader
                 EnableEfCoreDetection = true,
                 EnableDiagnosticFiles = true,
                 
-                // New orchestrated configuration - base generator should generate base types by default
-                Generation = new GenerationConfig { BaseMetaTypes = true },
+                // New orchestrated configuration - generators should NOT generate base types by default
+                // Each generator must explicitly opt-in if they want to generate base types
+                Generation = new GenerationConfig { BaseMetaTypes = false },
                 Discovery = new DiscoveryConfig 
                 { 
                     Syntax = true, 
-                    CrossAssembly = false,
+                    CrossAssembly = false,  // Default to syntax-only, require explicit opt-in for cross-assembly
                     Methods = new DiscoveryMethodsConfig
                     {
                         MetaTypesAttributes = true,
@@ -271,12 +328,12 @@ public static class ConfigurationLoader
                 EnableBaseDetection = true,
                 EnableDiagnosticFiles = true,
                 
-                // New orchestrated configuration - EfCore generator should NOT generate base types by default
+                // New orchestrated configuration - generators should NOT generate base types by default
                 Generation = new GenerationConfig { BaseMetaTypes = false },
                 Discovery = new DiscoveryConfig 
                 { 
                     Syntax = true, 
-                    CrossAssembly = true, // EfCore often needs cross-assembly discovery
+                    CrossAssembly = false, // Default to syntax-only, require explicit opt-in for cross-assembly
                     Methods = new EfCoreDiscoveryMethodsConfig
                     {
                         MetaTypesAttributes = true,

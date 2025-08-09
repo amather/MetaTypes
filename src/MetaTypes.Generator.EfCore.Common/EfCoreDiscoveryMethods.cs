@@ -62,7 +62,17 @@ public static class EfCoreDiscoveryMethods
                 {
                     if (IsDbContext(classSymbol))
                     {
-                        var entityTypes = ExtractDbSetEntityTypes(classSymbol);
+                        var entityTypes = ExtractDbSetEntityTypes(classSymbol).ToList();
+                        
+                        // Debug: If we found a DbContext but no entities, something is wrong
+                        if (entityTypes.Count == 0)
+                        {
+                            // Try to understand why - add a discovered type with debug info
+                            var debugInfo = $"DbContext {classSymbol.Name} found but no entities extracted. ";
+                            var propCount = classSymbol.GetMembers().OfType<IPropertySymbol>().Count();
+                            debugInfo += $"Property count: {propCount}";
+                        }
+                        
                         foreach (var entityType in entityTypes)
                         {
                             var source = entityType.ContainingAssembly.Equals(compilation.Assembly, SymbolEqualityComparer.Default)
@@ -201,7 +211,12 @@ public static class EfCoreDiscoveryMethods
     /// </summary>
     private static bool IsDbSetType(INamedTypeSymbol type)
     {
-        return type.Name == "DbSet" && 
-               type.ContainingNamespace.ToDisplayString() == "Microsoft.EntityFrameworkCore";
+        // Check if it's a generic type with the right name
+        if (type.IsGenericType && type.Name == "DbSet" && type.TypeArguments.Length == 1)
+        {
+            // Check namespace
+            return type.ContainingNamespace?.ToDisplayString() == "Microsoft.EntityFrameworkCore";
+        }
+        return false;
     }
 }
