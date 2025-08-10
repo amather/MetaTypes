@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using Microsoft.CodeAnalysis;
 using MetaTypes.Generator.Common.Generator;
 
@@ -12,9 +13,35 @@ namespace MetaTypes.Generator.Common.Vendor.EfCore.Generation
     /// </summary>
     public class EfCoreVendorGenerator : IVendorGenerator
     {
+        private EfCoreConfig _config = new();
+        
         public string VendorName => "EfCore";
         
         public string Description => "Generates EfCore-specific metadata extensions for entity types";
+        
+        /// <summary>
+        /// Configure the EfCore vendor generator with its specific configuration
+        /// </summary>
+        public void Configure(JsonElement? config)
+        {
+            if (config.HasValue)
+            {
+                try
+                {
+                    _config = JsonSerializer.Deserialize<EfCoreConfig>(config.Value) ?? new EfCoreConfig();
+                }
+                catch
+                {
+                    // Use default config if parsing fails
+                    _config = new EfCoreConfig();
+                }
+            }
+            else
+            {
+                // Use default config when no config provided
+                _config = new EfCoreConfig();
+            }
+        }
 
         /// <summary>
         /// Generates EfCore extensions only for types discovered by EfCore discovery methods
@@ -179,5 +206,15 @@ namespace MetaTypes.Generator.Common.Vendor.EfCore.Generation
                 a.AttributeClass?.Name == "NotMappedAttribute" || 
                 a.AttributeClass?.Name == "NotMapped");
         }
+    }
+    
+    /// <summary>
+    /// Configuration for EfCore vendor generator
+    /// </summary>
+    public class EfCoreConfig
+    {
+        public bool RequireBaseTypes { get; set; } = true;
+        public bool IncludeNavigationProperties { get; set; } = true;
+        public bool IncludeForeignKeys { get; set; } = true;
     }
 }

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.Json;
 using Microsoft.CodeAnalysis;
 
 namespace MetaTypes.Generator.Common.Generator
@@ -17,6 +18,13 @@ namespace MetaTypes.Generator.Common.Generator
         /// Description of what this vendor generator provides
         /// </summary>
         string Description { get; }
+        
+        /// <summary>
+        /// Configure the vendor generator with its specific configuration.
+        /// Vendors are responsible for parsing/binding their own config.
+        /// </summary>
+        /// <param name="config">Raw JSON config for this vendor, or null if no config provided</param>
+        void Configure(JsonElement? config);
         
         /// <summary>
         /// Generates vendor-specific extensions for discovered types

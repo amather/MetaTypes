@@ -74,7 +74,8 @@ This guide covers the significant architectural changes implemented in August 20
         "EfCore.DbContextSet"
       ]
     },
-    "Vendors": {
+    "EnabledVendors": ["EfCore"],
+    "VendorConfigs": {
       "EfCore": {
         "RequireBaseTypes": true,
         "IncludeNavigationProperties": true,
@@ -101,7 +102,8 @@ This guide covers the significant architectural changes implemented in August 20
         "EfCore.DbContextSet"
       ]
     },
-    "Vendors": {
+    "EnabledVendors": ["EfCore"],
+    "VendorConfigs": {
       "EfCore": {
         "RequireBaseTypes": true,
         "IncludeNavigationProperties": true,
@@ -155,7 +157,8 @@ This guide covers the significant architectural changes implemented in August 20
         "EfCore.DbContextSet"
       ]
     },
-    "Vendors": {
+    "EnabledVendors": ["EfCore"],
+    "VendorConfigs": {
       "EfCore": {
         "RequireBaseTypes": true,
         "IncludeNavigationProperties": true,
@@ -182,7 +185,8 @@ This guide covers the significant architectural changes implemented in August 20
         "EfCore.DbContextSet"
       ]
     },
-    "Vendors": {
+    "EnabledVendors": ["EfCore"],
+    "VendorConfigs": {
       "EfCore": {
         "RequireBaseTypes": true,
         "IncludeNavigationProperties": true,
@@ -233,6 +237,42 @@ To override the default namespace for generated types, use `GeneratedNamespace`:
 
 This replaces the old `AssemblyName` configuration option.
 
+### Step 5: Update Vendor Configuration (If Using Vendors)
+
+The vendor configuration format has been completely restructured for better clarity and extensibility:
+
+**OLD FORMAT** (no longer supported):
+```json
+{
+  "Vendors": {
+    "EfCore": {
+      "RequireBaseTypes": true,
+      "IncludeNavigationProperties": true
+    }
+  }
+}
+```
+
+**NEW FORMAT**:
+```json
+{
+  "EnabledVendors": ["EfCore"],
+  "VendorConfigs": {
+    "EfCore": {
+      "RequireBaseTypes": true,
+      "IncludeNavigationProperties": true,
+      "IncludeForeignKeys": true
+    }
+  }
+}
+```
+
+**Key Changes:**
+- **Explicit Enablement**: `EnabledVendors` array clearly lists which vendors to activate
+- **Separated Configuration**: `VendorConfigs` contains vendor-specific settings
+- **Vendor Self-Configuration**: Each vendor parses its own configuration (no more hard-coded logic)
+- **Multiple Vendors**: Easily enable multiple vendors: `"EnabledVendors": ["EfCore", "Json", "Validation"]`
+
 ## 🏗️ New Vendor-Based Architecture
 
 ### Unified Generator System
@@ -254,6 +294,24 @@ This replaces the old `AssemblyName` configuration option.
 
 **Single-Generator Pattern:**
 1. **One Project**: `BaseMetaTypes: true` + all discovery methods → generates both base and vendor extensions
+
+### Vendor Architecture Improvements
+
+**New Vendor System:**
+- **Vendor-Agnostic Core**: Generator has zero knowledge of specific vendors (no more hard-coded `"efcore"` checks)
+- **Self-Configuring Vendors**: Each vendor parses its own `JsonElement` configuration using `JsonSerializer.Deserialize<T>()`
+- **Explicit Enablement**: `EnabledVendors` array controls which vendors run
+- **Diagnostic Visibility**: `AvailableVendors` vs `EnabledVendors` clearly shown in diagnostics
+
+**Vendor Interface:**
+```csharp
+public interface IVendorGenerator 
+{
+    string VendorName { get; }
+    void Configure(JsonElement? config); // Vendor parses own config
+    IEnumerable<GeneratedFile> Generate(...);
+}
+```
 
 ### Vendor Extensions
 - **EfCore Vendor**: Generates `IMetaTypeEfCore` extensions with table names, keys, foreign keys
@@ -282,11 +340,20 @@ This replaces the old `AssemblyName` configuration option.
 
 ### Issue: EfCore Extensions Missing
 
-**Cause**: EfCore vendor not configured or base types not available  
+**Cause**: EfCore vendor not enabled or misconfigured  
 **Solution**: 
-- For two-generator pattern: Configure main project with `BaseMetaTypes: true` and vendor project with `BaseMetaTypes: false`
-- For single-generator pattern: Set `BaseMetaTypes: true` and include EfCore discovery methods
-- Ensure EfCore vendor has `"RequireBaseTypes": true`
+- **Check Enablement**: Add `"EnabledVendors": ["EfCore"]` to your configuration
+- **Verify Configuration**: Ensure vendor config exists in `VendorConfigs.EfCore`
+- **Two-Generator Pattern**: Configure main project with `BaseMetaTypes: true` and vendor project with `BaseMetaTypes: false`  
+- **Single-Generator Pattern**: Set `BaseMetaTypes: true` and include EfCore discovery methods
+- **Check Diagnostics**: Look for `AvailableVendors` vs `EnabledVendors` in diagnostic files
+
+### Issue: Vendor Not Found
+
+**Cause**: Vendor name mismatch between `EnabledVendors` and actual vendor `VendorName`  
+**Solution**: 
+- Check `AvailableVendors` in diagnostic files for exact vendor names
+- Ensure spelling matches exactly (case-sensitive): `"EfCore"` not `"efcore"`
 
 ### Issue: Configuration Not Loading
 

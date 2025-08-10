@@ -79,6 +79,35 @@ MetaTypes.Generator.Common/
 
 ## Vendor System
 
+### New Vendor Architecture (August 2025)
+
+**Vendor-Agnostic Core**: The generator has no hard-coded knowledge of specific vendors. All vendor logic is pluggable.
+
+**Explicit Configuration:**
+```json
+{
+  "EnabledVendors": ["EfCore"],
+  "VendorConfigs": {
+    "EfCore": {
+      "RequireBaseTypes": true,
+      "IncludeNavigationProperties": true,
+      "IncludeForeignKeys": true
+    }
+  }
+}
+```
+
+**Self-Configuring Vendors**: Each vendor implements `Configure(JsonElement? config)` and parses its own configuration:
+```csharp
+public void Configure(JsonElement? config)
+{
+    if (config.HasValue)
+    {
+        _config = JsonSerializer.Deserialize<EfCoreConfig>(config.Value) ?? new EfCoreConfig();
+    }
+}
+```
+
 ### Available Vendors
 - **EfCore Vendor**: Generates Entity Framework Core extensions with table names, keys, and relationships
 

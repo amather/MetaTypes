@@ -33,15 +33,23 @@ namespace MetaTypes.Generator.Common.Generator
         }
 
         /// <summary>
+        /// Gets available vendor names for diagnostics
+        /// </summary>
+        public static IEnumerable<string> GetAvailableVendorNames()
+        {
+            return GetVendorGenerators().Select(g => g.VendorName);
+        }
+        
+        /// <summary>
         /// Gets vendor generators that are enabled based on configuration
         /// </summary>
-        public static IEnumerable<IVendorGenerator> GetEnabledVendorGenerators(VendorConfig? vendorConfig)
+        public static IEnumerable<IVendorGenerator> GetEnabledVendorGenerators(string[]? enabledVendors)
         {
             var allGenerators = GetVendorGenerators();
             
-            if (vendorConfig == null)
+            if (enabledVendors == null || enabledVendors.Length == 0)
             {
-                // No vendor configuration, return no generators
+                // No vendors enabled
                 return Enumerable.Empty<IVendorGenerator>();
             }
 
@@ -49,8 +57,8 @@ namespace MetaTypes.Generator.Common.Generator
 
             foreach (var generator in allGenerators)
             {
-                // Check if this vendor is configured
-                if (IsVendorEnabled(generator.VendorName, vendorConfig))
+                // Check if this vendor is in the enabled list
+                if (enabledVendors.Contains(generator.VendorName))
                 {
                     enabledGenerators.Add(generator);
                 }
@@ -59,18 +67,6 @@ namespace MetaTypes.Generator.Common.Generator
             return enabledGenerators;
         }
 
-        private static bool IsVendorEnabled(string vendorName, VendorConfig vendorConfig)
-        {
-            // Check specific vendor configurations
-            switch (vendorName.ToLowerInvariant())
-            {
-                case "efcore":
-                    return vendorConfig.EfCore != null;
-                default:
-                    // Check if vendor exists in extensions
-                    return vendorConfig.Extensions?.ContainsKey(vendorName) ?? false;
-            }
-        }
 
         private static List<IVendorGenerator> DiscoverVendorGenerators()
         {

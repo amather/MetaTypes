@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Text;
+using System.Text.Json;
 using System.Linq;
 using MetaTypes.Generator.Common;
 using MetaTypes.Generator.Common.Generator;
@@ -134,40 +135,43 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
         IList<DiscoveredType> discoveredTypes,
         SourceProductionContext context)
     {
+        // Get available vendors for diagnostics
+        var availableVendors = VendorGeneratorRegistry.GetAvailableVendorNames().ToList();
+        
         // Get enabled vendor generators based on configuration
-        var vendorGenerators = VendorGeneratorRegistry.GetEnabledVendorGenerators(config.Vendors);
+        var vendorGenerators = VendorGeneratorRegistry.GetEnabledVendorGenerators(config.EnabledVendors);
+        var enabledVendorNames = vendorGenerators.Select(v => v.VendorName).ToList();
+
+        // Add vendor diagnostics
+        if (config.EnableDiagnosticFiles)
+        {
+            context.AddSource("_VendorDiagnostic.g.cs", $@"
+// Vendor Generator Diagnostic
+// Generated at: {System.DateTime.Now}
+// 
+// Available Vendors: [{string.Join(", ", availableVendors)}]
+// Enabled Vendors: [{string.Join(", ", enabledVendorNames)}]
+// Vendor Configs: [{string.Join(", ", config.VendorConfigs?.Keys.ToArray() ?? Array.Empty<string>())}]
+");
+        }
 
         foreach (var vendorGenerator in vendorGenerators)
         {
             try
             {
+                // Configure the vendor generator with its specific config
+                System.Text.Json.JsonElement? vendorConfig = null;
+                if (config.VendorConfigs?.TryGetValue(vendorGenerator.VendorName, out var configValue) == true)
+                {
+                    vendorConfig = configValue;
+                }
+                vendorGenerator.Configure(vendorConfig);
+                
                 // Create context for vendor generator
                 var vendorContext = new GeneratorContext
                 {
                     EnableDiagnostics = config.EnableDiagnosticFiles
                 };
-
-                // Set vendor-specific configuration
-                if (config.Vendors != null)
-                {
-                    switch (vendorGenerator.VendorName.ToLowerInvariant())
-                    {
-                        case "efcore":
-                            if (config.Vendors.EfCore != null)
-                            {
-                                vendorContext.Configuration = new VendorConfiguration
-                                {
-                                    RequireBaseTypes = config.Vendors.EfCore.RequireBaseTypes,
-                                    Settings = new Dictionary<string, object>
-                                    {
-                                        ["IncludeNavigationProperties"] = config.Vendors.EfCore.IncludeNavigationProperties,
-                                        ["IncludeForeignKeys"] = config.Vendors.EfCore.IncludeForeignKeys
-                                    }
-                                };
-                            }
-                            break;
-                    }
-                }
 
                 // Generate vendor-specific files
                 var generatedFiles = vendorGenerator.Generate(discoveredTypes, compilation, vendorContext);

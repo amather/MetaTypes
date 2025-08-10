@@ -12,7 +12,8 @@
         "EfCore.DbContextSet"
       ]
     },
-    "Vendors": {
+    "EnabledVendors": ["EfCore"],
+    "VendorConfigs": {
       "EfCore": {
         "RequireBaseTypes": true,
         "IncludeNavigationProperties": true,
