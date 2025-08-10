@@ -83,6 +83,8 @@ MetaTypes.Generator.Common/
 
 **Vendor-Agnostic Core**: The generator has no hard-coded knowledge of specific vendors. All vendor logic is pluggable.
 
+**Fixed Critical Bug**: Vendor generation now runs independently of base generation - vendors are no longer incorrectly skipped when `BaseMetaTypes = false`.
+
 **Explicit Configuration:**
 ```json
 {
@@ -121,6 +123,9 @@ public void Configure(JsonElement? config)
 
 ### Generated Files Structure
 For a type discovered by EfCore methods:
-- **Base File**: `TestEntityMetaType.g.cs` (implements `IMetaType<TestEntity>`)
+- **Base File**: `TestEntityMetaType.g.cs` (implements `IMetaType<TestEntity>`) - requires `BaseMetaTypes: true`
 - **EfCore Extension**: `TestEntityEfCoreMetaType.g.cs` (partial class implementing `IMetaTypeEfCore`)
-```
+
+### Vendor Dependencies
+- **EfCore Vendor**: Requires base MetaTypes by default (`RequireBaseTypes: true`) since extensions are partial classes
+- **Independent Generation**: Vendor generation runs separately from base generation but may depend on base types existing

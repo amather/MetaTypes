@@ -55,6 +55,7 @@ namespace MetaTypes.Generator.Common.Generator
     {
         public VendorConfiguration? Configuration { get; set; }
         public bool EnableDiagnostics { get; set; }
+        public Dictionary<string, string> Properties { get; set; } = new();
     }
     
     /// <summary>

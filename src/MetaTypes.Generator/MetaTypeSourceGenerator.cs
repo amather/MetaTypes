@@ -85,11 +85,14 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
             return;
         }
 
-        // Check if this generator should generate base MetaTypes
-        if (!config.Generation.BaseMetaTypes)
+        // Generate base MetaTypes if configured
+        if (config.Generation.BaseMetaTypes)
         {
-            // This generator is configured to NOT generate base MetaTypes
-            // Add a diagnostic to show that types were discovered but generation was skipped
+            GenerateBaseMetaTypes(discoveredTypes, config, context);
+        }
+        else
+        {
+            // Add a diagnostic to show that types were discovered but base generation was skipped
             context.AddSource("_BaseGenerationSkipped.g.cs", $@"
 // Base MetaType generation skipped by configuration
 // BaseMetaTypes = {config.Generation.BaseMetaTypes}
@@ -97,9 +100,17 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
 // Types: {string.Join(", ", discoveredTypes.Select(dt => dt.TypeSymbol.Name))}
 // Configure BaseMetaTypes = true to generate base classes with this generator
 ");
-            return;
         }
 
+        // Always execute vendor generators regardless of base generation
+        ExecuteVendorGenerators(compilation, config, discoveredTypes, context);
+    }
+
+    private static void GenerateBaseMetaTypes(
+        IList<DiscoveredType> discoveredTypes,
+        BaseGeneratorOptions config,
+        SourceProductionContext context)
+    {
         // Group discovered types by their source assembly for proper namespace generation
         var typesByAssembly = discoveredTypes.GroupBy(dt => dt.TypeSymbol.ContainingAssembly.Name).ToList();
 
@@ -124,9 +135,6 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
                 context.AddSource($"{assemblyName}_{typeSymbol.Name}MetaType.g.cs", metaTypeSource);
             }
         }
-
-        // Execute vendor generators
-        ExecuteVendorGenerators(compilation, config, discoveredTypes, context);
     }
 
     private static void ExecuteVendorGenerators(
@@ -170,7 +178,11 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
                 // Create context for vendor generator
                 var vendorContext = new GeneratorContext
                 {
-                    EnableDiagnostics = config.EnableDiagnosticFiles
+                    EnableDiagnostics = config.EnableDiagnosticFiles,
+                    Properties = new Dictionary<string, string>
+                    {
+                        ["BaseMetaTypesGenerated"] = config.Generation.BaseMetaTypes.ToString()
+                    }
                 };
 
                 // Generate vendor-specific files

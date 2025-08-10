@@ -51,6 +51,19 @@ namespace MetaTypes.Generator.Common.Vendor.EfCore.Generation
             Compilation compilation,
             GeneratorContext context)
         {
+            // Check if base types are required and available
+            var baseTypesAvailable = context.Properties.TryGetValue("BaseMetaTypesGenerated", out var baseGenerated) 
+                && bool.Parse(baseGenerated);
+                
+                
+            if (_config.RequireBaseTypes && !baseTypesAvailable)
+            {
+                // If base types are required but not available, skip vendor generation
+                // This prevents compilation errors when vendor extensions reference non-existent base classes
+                
+                yield break;
+            }
+
             // Filter to only types discovered by EfCore discovery methods
             var efCoreTypes = discoveredTypes
                 .Where(dt => dt.WasDiscoveredByPrefix("EfCore."))

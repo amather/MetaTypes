@@ -3,7 +3,7 @@ using Sample.Auth.Models;
 using Sample.Business.Models;
 using Sample.EfCore.Infrastructure.Entities;
 
-namespace Sample.EfCore.LocalOnly.Data;
+namespace Sample.EfCore.MultiProject.Data;
 
 public class LocalDbContext : DbContext
 {
