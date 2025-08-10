@@ -84,7 +84,7 @@ namespace MetaTypes.Generator.Common.Vendor.EfCore.Generation
                 var assemblyName = entityType.ContainingAssembly.Name;
                 yield return new GeneratedFile
                 {
-                    FileName = $"{assemblyName}_{entityType.Name}EfCoreMetaType.g.cs",
+                    FileName = $"{assemblyName}_{entityType.Name}MetaTypeEfCore.g.cs",
                     Content = source
                 };
             }
