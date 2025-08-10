@@ -2,12 +2,12 @@
   "MetaTypes.Generator": {
     "EnableDiagnosticFiles": true,
     "Generation": {
-      "BaseMetaTypes": true
+      "BaseMetaTypes": false
     },
     "Discovery": {
       "Syntax": true,
-      "CrossAssembly": true,
-      "Methods": ["MetaTypes.Attribute", "MetaTypes.Reference"]
+      "CrossAssembly": false,
+      "Methods": ["MetaTypes.Attribute"]
     }
   }
 }

@@ -35,19 +35,16 @@ public interface IDiscoveryConfig
 }
 
 /// <summary>
-/// Configuration for discovery methods
+/// Configuration for discovery methods using pluggable identifiers
 /// </summary>
 public interface IDiscoveryMethodsConfig
 {
     /// <summary>
-    /// Discover types with [MetaType] attributes (default: true)
+    /// Array of discovery method identifiers to use.
+    /// Available built-in methods: "MetaTypes.Attribute", "MetaTypes.Reference"
+    /// Additional methods may be provided by specific generators (e.g., "EfCore.TableAttribute", "EfCore.DbContextSet")
     /// </summary>
-    bool MetaTypesAttributes { get; }
-    
-    /// <summary>
-    /// Discover types referenced by other MetaTypes (default: true)
-    /// </summary>
-    bool MetaTypesReferences { get; }
+    string[] Methods { get; }
 }
 
 /// <summary>

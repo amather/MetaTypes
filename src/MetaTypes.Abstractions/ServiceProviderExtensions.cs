@@ -14,4 +14,10 @@ public static class ServiceProviderExtensions
         var serviceType = typeof(IMetaType<>).MakeGenericType(type);
         return (IMetaType)serviceProvider.GetRequiredService(serviceType);
     }
+    
+    public static IEnumerable<IMetaType> GetMetaTypes(this IServiceProvider serviceProvider)
+    {
+        var providers = serviceProvider.GetServices<IMetaTypeProvider>();
+        return providers.SelectMany(provider => provider.AssemblyMetaTypes);
+    }
 }

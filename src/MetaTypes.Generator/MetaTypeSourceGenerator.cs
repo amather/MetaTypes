@@ -1,11 +1,13 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Text;
 using System.Linq;
 using MetaTypes.Generator.Common;
-using MetaTypes.Generator.EfCore.Common;
+using MetaTypes.Generator.Common.Generator;
 
 namespace MetaTypes.Generator;
 
@@ -40,27 +42,13 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
 
     private static void Execute(Compilation compilation, BaseGeneratorOptions config, SourceProductionContext context)
     {
-        // Register EfCore discovery methods if EfCore detection is enabled
-        if (config.EnableEfCoreDetection)
-        {
-            EfCoreDiscoveryMethods.RegisterWithUnifiedDiscovery();
-        }
-        
-        // Use the new configuration-driven discovery system
-        var discoveredTypes = UnifiedTypeDiscovery.DiscoverTypes(compilation, config.Discovery);
-        
-        // Legacy fallback: if new discovery didn't find anything, try legacy methods
-        if (discoveredTypes.Count == 0 && config.EnableEfCoreDetection)
-        {
-            var legacyMethods = new List<TypeDiscoverMethod>();
-            legacyMethods.AddRange(UnifiedTypeDiscovery.GetCommonDiscoveryMethods());
-            legacyMethods.AddRange(EfCoreDiscoveryMethods.GetEfCoreDiscoveryMethods());
-            discoveredTypes = UnifiedTypeDiscovery.DiscoverTypes(compilation, legacyMethods.ToArray());
-        }
+        // Use the new plugin-based discovery system - all IDiscoveryMethod implementations are auto-discovered via reflection
+        var discoveryResult = UnifiedTypeDiscovery.GetDiscoveryResult(compilation, config.Discovery);
+        var discoveredTypes = discoveryResult.DiscoveredTypes;
         
         // Always add diagnostic file for debugging configuration
         var discoveryStats = discoveredTypes
-            .GroupBy(dt => $"{dt.Source}-{dt.DiscoveredBy}")
+            .GroupBy(dt => $"{dt.Source}-{dt.PrimaryDiscoveredBy}")
             .Select(g => $"{g.Key}: {g.Count()}")
             .ToList();
             
@@ -74,17 +62,21 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
 // - BaseMetaTypes: {config.Generation.BaseMetaTypes}
 // - Discovery.Syntax: {config.Discovery.Syntax}
 // - Discovery.CrossAssembly: {config.Discovery.CrossAssembly}
-// - Discovery.Methods.MetaTypesAttributes: {config.Discovery.Methods.MetaTypesAttributes}
-// - Discovery.Methods.MetaTypesReferences: {config.Discovery.Methods.MetaTypesReferences}
+// - Discovery.Methods: [{string.Join(", ", config.Discovery.Methods.Methods)}]
 //
-// LEGACY COMPATIBILITY:
-// - EnableEfCoreDetection: {config.EnableEfCoreDetection}
+// DISCOVERY EXECUTION:
+// - Success: {discoveryResult.Success}
+// - Methods Used: {string.Join(", ", discoveryResult.MethodsUsed)}
+// - Warnings: {string.Join("; ", discoveryResult.Warnings)}
+// - Errors: {string.Join("; ", discoveryResult.Errors)}
+//
+// CONFIGURATION:
 // - EnableDiagnosticFiles: {config.EnableDiagnosticFiles}
 //
 // DISCOVERY RESULTS:
 // - Discovered types: {discoveredTypes.Count}
 // - Discovery breakdown: {string.Join(", ", discoveryStats)}
-// - Types: {string.Join(", ", discoveredTypes.Select(dt => $"{dt.TypeSymbol.Name} ({dt.Source} by {dt.DiscoveredBy})"))}
+// - Types: {string.Join(", ", discoveredTypes.Select(dt => $"{dt.TypeSymbol.Name} ({dt.Source} by [{string.Join(", ", dt.DiscoveredBy)}])"))}
 ");
 
         if (discoveredTypes.Count == 0)
@@ -129,6 +121,90 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
             {
                 var metaTypeSource = CoreMetaTypeGenerator.GenerateMetaTypeClass(typeSymbol, targetNamespace, allDiscoveredTypeSymbols);
                 context.AddSource($"{assemblyName}_{typeSymbol.Name}MetaType.g.cs", metaTypeSource);
+            }
+        }
+
+        // Execute vendor generators
+        ExecuteVendorGenerators(compilation, config, discoveredTypes, context);
+    }
+
+    private static void ExecuteVendorGenerators(
+        Compilation compilation,
+        BaseGeneratorOptions config,
+        IList<DiscoveredType> discoveredTypes,
+        SourceProductionContext context)
+    {
+        // Get enabled vendor generators based on configuration
+        var vendorGenerators = VendorGeneratorRegistry.GetEnabledVendorGenerators(config.Vendors);
+
+        foreach (var vendorGenerator in vendorGenerators)
+        {
+            try
+            {
+                // Create context for vendor generator
+                var vendorContext = new GeneratorContext
+                {
+                    EnableDiagnostics = config.EnableDiagnosticFiles
+                };
+
+                // Set vendor-specific configuration
+                if (config.Vendors != null)
+                {
+                    switch (vendorGenerator.VendorName.ToLowerInvariant())
+                    {
+                        case "efcore":
+                            if (config.Vendors.EfCore != null)
+                            {
+                                vendorContext.Configuration = new VendorConfiguration
+                                {
+                                    RequireBaseTypes = config.Vendors.EfCore.RequireBaseTypes,
+                                    Settings = new Dictionary<string, object>
+                                    {
+                                        ["IncludeNavigationProperties"] = config.Vendors.EfCore.IncludeNavigationProperties,
+                                        ["IncludeForeignKeys"] = config.Vendors.EfCore.IncludeForeignKeys
+                                    }
+                                };
+                            }
+                            break;
+                    }
+                }
+
+                // Generate vendor-specific files
+                var generatedFiles = vendorGenerator.Generate(discoveredTypes, compilation, vendorContext);
+                
+                foreach (var file in generatedFiles)
+                {
+                    context.AddSource(file.FileName, file.Content);
+                }
+
+                // Add diagnostic if enabled
+                if (config.EnableDiagnosticFiles)
+                {
+                    var vendorTypes = discoveredTypes
+                        .Where(dt => dt.PrimaryDiscoveredBy.StartsWith($"{vendorGenerator.VendorName}."))
+                        .Select(dt => dt.TypeSymbol.Name)
+                        .ToList();
+
+                    if (vendorTypes.Any())
+                    {
+                        context.AddSource($"_{vendorGenerator.VendorName}VendorDiagnostic.g.cs", $@"
+// {vendorGenerator.VendorName} Vendor Generator Diagnostic
+// Generated at: {System.DateTime.Now}
+// Description: {vendorGenerator.Description}
+// Types processed: {vendorTypes.Count}
+// Types: {string.Join(", ", vendorTypes)}
+");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Add error diagnostic
+                context.AddSource($"_{vendorGenerator.VendorName}VendorError.g.cs", $@"
+// ERROR in {vendorGenerator.VendorName} vendor generator
+// Exception: {ex.Message}
+// StackTrace: {ex.StackTrace}
+");
             }
         }
     }

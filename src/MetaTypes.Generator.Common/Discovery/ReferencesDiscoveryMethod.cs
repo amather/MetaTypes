@@ -1,49 +1,22 @@
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace MetaTypes.Generator.Common;
 
 /// <summary>
-/// Standard discovery methods provided by the Common project.
+/// Discovery method that finds types with [MetaType] attribute from referenced assemblies.
+/// Scans assembly metadata to find pre-compiled types with MetaType attributes.
 /// </summary>
-public static class CommonDiscoveryMethods
+public class ReferencesDiscoveryMethod : IDiscoveryMethod
 {
-    /// <summary>
-    /// Discovers types with [MetaType] attribute via syntax trees in current compilation.
-    /// </summary>
-    public static IEnumerable<DiscoveredType> DiscoverMetaTypesSyntax(Compilation compilation)
-    {
-        var discoveredTypes = new List<DiscoveredType>();
-        
-        foreach (var syntaxTree in compilation.SyntaxTrees)
-        {
-            var semanticModel = compilation.GetSemanticModel(syntaxTree);
-            
-            foreach (var typeDeclaration in syntaxTree.GetRoot().DescendantNodes().OfType<TypeDeclarationSyntax>())
-            {
-                if (semanticModel.GetDeclaredSymbol(typeDeclaration) is INamedTypeSymbol typeSymbol)
-                {
-                    if (HasMetaTypeAttributeSyntax(typeDeclaration, semanticModel))
-                    {
-                        discoveredTypes.Add(new DiscoveredType
-                        {
-                            TypeSymbol = typeSymbol,
-                            Source = DiscoverySource.Syntax,
-                            DiscoveredBy = "Common",
-                            DiscoveryContext = "MetaType attribute via syntax"
-                        });
-                    }
-                }
-            }
-        }
-        
-        return discoveredTypes;
-    }
+    public string Identifier => "MetaTypes.Reference";
     
-    /// <summary>
-    /// Discovers types with [MetaType] attribute from referenced assemblies.
-    /// </summary>
-    public static IEnumerable<DiscoveredType> DiscoverMetaTypesReferenced(Compilation compilation)
+    public string Description => "Discovers types with [MetaType] attribute from referenced assemblies";
+    
+    public bool RequiresCrossAssembly => true;
+    
+    public bool CanRun(Compilation compilation) => true;
+    
+    public IEnumerable<DiscoveredType> Discover(Compilation compilation)
     {
         var discoveredTypes = new List<DiscoveredType>();
         
@@ -58,39 +31,13 @@ public static class CommonDiscoveryMethods
                 {
                     TypeSymbol = typeSymbol,
                     Source = DiscoverySource.Referenced,
-                    DiscoveredBy = "Common",
-                    DiscoveryContext = "MetaType attribute via assembly metadata"
+                    DiscoveredBy = new[] { Identifier },
+                    DiscoveryContexts = { [Identifier] = "MetaType attribute via assembly metadata" }
                 });
             }
         }
         
         return discoveredTypes;
-    }
-    
-    /// <summary>
-    /// Checks if a type declaration has the [MetaType] attribute via syntax analysis.
-    /// </summary>
-    private static bool HasMetaTypeAttributeSyntax(TypeDeclarationSyntax typeDeclaration, SemanticModel semanticModel)
-    {
-        foreach (var attributeList in typeDeclaration.AttributeLists)
-        {
-            foreach (var attribute in attributeList.Attributes)
-            {
-                var symbolInfo = semanticModel.GetSymbolInfo(attribute);
-                if (symbolInfo.Symbol is IMethodSymbol attributeConstructor)
-                {
-                    var attributeContainingTypeSymbol = attributeConstructor.ContainingType;
-                    var fullName = attributeContainingTypeSymbol.ToDisplayString();
-
-                    if (fullName == "MetaTypes.Abstractions.MetaTypeAttribute")
-                    {
-                        return true;
-                    }
-                }
-            }
-        }
-        
-        return false;
     }
     
     /// <summary>

@@ -1,54 +1,97 @@
 # MetaTypes.Generator.Common
 
 ## Overview
-This folder contains shared source generator code that gets linked into actual generator projects. It's not a standalone project - files are included via LinkBase patterns.
+This folder contains shared source generator code that gets linked into the main MetaTypes.Generator project. It provides the core infrastructure for the unified vendor-based generator architecture.
 
 ## Key Components
 
-### Core Generator Classes
+### Generator/ - Core Generator Classes
 - **CoreMetaTypeGenerator** - Abstract base class that source generators should extend. Provides common generation logic and structure.
-- **DiscoveredType** - Model representing a discovered type during the source generation process
-- **UnifiedTypeDiscovery** - Utility class providing unified type discovery mechanisms
-- **CommonDiscoveryMethods** - Collection of common methods for discovering types in compilations
 
-### Configuration
-- **GeneratorConfiguration** - Implementation of IGeneratorConfiguration for managing generator settings
+### Discovery/ - Pluggable Type Discovery System
+- **DiscoveredType** - Model representing a discovered type with discovery metadata and helper methods
+- **UnifiedTypeDiscovery** - Reflection-based discovery coordinator that finds and executes IDiscoveryMethod implementations
+- **IDiscoveryMethod** - Interface for pluggable discovery methods with unique identifiers
+- **AttributesDiscoveryMethod** - Core plugin for discovering types with [MetaType] attribute (`"MetaTypes.Attribute"`)
+- **ReferencesDiscoveryMethod** - Core plugin for discovering referenced types with [MetaType] (`"MetaTypes.Reference"`)
+
+### Configuration/ - Unified Configuration System
+- **MetaTypesGeneratorConfiguration** - Root configuration parser for `"MetaTypes.Generator"` section
+- **BaseGeneratorOptions** - Main configuration options with Generation, Discovery, and Vendors sections
+- **ConfigurationLoader** - Helper class for loading and parsing metatypes.config.json
+- **DiscoveryConfig** - Configuration for type discovery (Syntax, CrossAssembly, Methods array)
+- **DiscoveryMethodsConfig** - Array-based discovery methods configuration (e.g., `["MetaTypes.Attribute", "EfCore.TableAttribute"]`)
+- **GenerationConfig** - Generation options (BaseMetaTypes flag)
+- **VendorConfig** - Vendor-specific configuration (EfCore options)
 - **AssemblyNameProvider** - Implementation of IAssemblyNameProvider for providing assembly names
 
 ## Usage
-Files from this folder are automatically included in generator projects using:
+This code is linked into the main MetaTypes.Generator project via:
 ```xml
 <Compile Include="../MetaTypes.Generator.Common/**/*.cs" LinkBase="Common" />
 ```
 
-## Usage in Source Generators
-Include this shared code in your source generator projects using the LinkBase approach:
-```xml
-<Compile Include="../MetaTypes.Generator.Common/**/*.cs" LinkBase="Common" />
+## Architecture
+The unified generator architecture works as follows:
+
+### Discovery Process
+1. **Configuration Loading**: `ConfigurationLoader` parses `metatypes.config.json`
+2. **Method Resolution**: `UnifiedTypeDiscovery` uses reflection to find all `IDiscoveryMethod` implementations
+3. **Type Discovery**: Each enabled discovery method finds types and creates `DiscoveredType` instances
+4. **Aggregation**: Multiple discovery methods can find the same type, results are aggregated
+
+### Generation Process
+1. **Base Generation**: Standard MetaType classes are generated (if `BaseMetaTypes: true`)
+2. **Vendor Generation**: Vendor generators extend base types with additional interfaces (e.g., `IMetaTypeEfCore`)
+3. **Coordination**: Vendor generators filter types using `DiscoveredType.WasDiscoveredByPrefix("EfCore.")`
+
+## Directory Structure
+```
+MetaTypes.Generator.Common/
+├── Configuration/           # Configuration management classes
+│   ├── MetaTypesGeneratorConfiguration.cs
+│   ├── DiscoveryConfig.cs
+│   ├── DiscoveryMethodsConfig.cs
+│   ├── GenerationConfig.cs
+│   ├── GeneratorConfigSection.cs
+│   ├── BaseGeneratorOptions.cs
+│   ├── EfCoreGeneratorOptions.cs
+│   ├── EfCoreSpecificConfig.cs
+│   ├── EfCoreDiscoveryMethodsConfig.cs
+│   ├── ConfigurationLoader.cs
+│   └── AssemblyNameProvider.cs
+├── Discovery/               # Type discovery system
+│   ├── DiscoveredType.cs
+│   ├── UnifiedTypeDiscovery.cs
+│   ├── IDiscoveryMethod.cs
+│   ├── AttributesDiscoveryMethod.cs
+│   └── ReferencesDiscoveryMethod.cs
+├── Generator/               # Core generator classes
+│   └── CoreMetaTypeGenerator.cs
+└── Vendor/                  # Vendor-specific extensions
+    └── EfCore/             # Entity Framework Core vendor
+        ├── Generation/     # EfCore vendor generator
+        │   └── EfCoreVendorGenerator.cs
+        └── Discovery/      # EfCore discovery methods
+            ├── EfCoreEntitiesDiscoveryMethod.cs    # "EfCore.TableAttribute"
+            └── DbContextScanningDiscoveryMethod.cs # "EfCore.DbContextSet"
 ```
 
-Then extend CoreMetaTypeGenerator:
-```csharp
-[Generator]
-public class YourSourceGenerator : CoreMetaTypeGenerator
-{
-    protected override string GetNamespace(string assemblyName) =>
-        $"{assemblyName}.Generated.MetaTypes";
+## Vendor System
 
-    protected override IEnumerable<DiscoveredType> DiscoverTypes(
-        Compilation compilation, 
-        ImmutableArray<AdditionalText> additionalFiles, 
-        CancellationToken cancellationToken)
-    {
-        // Your discovery logic here
-    }
-}
+### Available Vendors
+- **EfCore Vendor**: Generates Entity Framework Core extensions with table names, keys, and relationships
+
+### Discovery Methods by Vendor
+- **Core Methods**:
+  - `"MetaTypes.Attribute"` - Types with `[MetaType]` attribute
+  - `"MetaTypes.Reference"` - Referenced types with `[MetaType]`
+- **EfCore Methods**:
+  - `"EfCore.TableAttribute"` - Types with `[Table]` attribute (syntax-based)
+  - `"EfCore.DbContextSet"` - Entity types found via `DbSet<T>` properties
+
+### Generated Files Structure
+For a type discovered by EfCore methods:
+- **Base File**: `TestEntityMetaType.g.cs` (implements `IMetaType<TestEntity>`)
+- **EfCore Extension**: `TestEntityEfCoreMetaType.g.cs` (partial class implementing `IMetaTypeEfCore`)
 ```
-
-## Files
-- **CoreMetaTypeGenerator** - Base class for generators
-- **DiscoveredType** - Model for discovered types
-- **UnifiedTypeDiscovery** - Type discovery utilities
-- **CommonDiscoveryMethods** - Common discovery patterns
-- **GeneratorConfiguration** - Configuration handling
-- **AssemblyNameProvider** - Assembly name utilities

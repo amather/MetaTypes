@@ -1,0 +1,23 @@
+{
+  "MetaTypes.Generator": {
+    "EnableDiagnosticFiles": true,
+    "Generation": {
+      "BaseMetaTypes": false
+    },
+    "Discovery": {
+      "Syntax": true,
+      "CrossAssembly": true,
+      "Methods": [
+        "EfCore.TableAttribute",
+        "EfCore.DbContextSet"
+      ]
+    },
+    "Vendors": {
+      "EfCore": {
+        "RequireBaseTypes": true,
+        "IncludeNavigationProperties": true,
+        "IncludeForeignKeys": true
+      }
+    }
+  }
+}

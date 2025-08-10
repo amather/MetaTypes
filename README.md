@@ -1,6 +1,8 @@
 # MetaTypes
 
-A C# source generator that creates compile-time metadata for classes, structs, records, and enums to reduce reflection overhead at runtime.
+A unified C# source generator that creates compile-time metadata for classes, structs, records, and enums to reduce reflection overhead at runtime. Features a vendor-based architecture with Entity Framework Core extensions.
+
+> **✅ Fully Functional** - Vendor-based architecture implemented and tested (August 10th, 2025)
 
 ## Features
 
@@ -10,6 +12,8 @@ A C# source generator that creates compile-time metadata for classes, structs, r
 - 🔌 **Dependency Injection integration** - Built-in DI extensions for easy registration
 - 📦 **Modern C#** - Built with .NET 8+, C# 13, and nullable reference types
 - ⚡ **Performance optimized** - Singleton patterns and compile-time constants
+- 🔌 **Vendor Extensions** - Pluggable vendor system with Entity Framework Core support
+- 🎯 **Unified Architecture** - Single generator with vendor plugins for specialized metadata
 
 ## Quick Start
 
@@ -87,26 +91,58 @@ foreach (var member in customerMetaType.Members)
 
 ### Quick Configuration
 
+**Basic project** (metatypes.config.json):
 ```json
-// metatypes.config.json
 {
-  "AssemblyName": "MyApp.Business",
-  "EfCoreDetection": true,
-  "DiscoveryMethods": {
-    "Common": {
-      "AttributeBased": true,
-      "ReferencedTypes": true
+  "MetaTypes.Generator": {
+    "EnableDiagnosticFiles": true,
+    "Generation": {
+      "BaseMetaTypes": true
+    },
+    "Discovery": {
+      "Syntax": true,
+      "CrossAssembly": true,
+      "Methods": ["MetaTypes.Attribute", "MetaTypes.Reference"]
     }
   }
 }
 ```
 
-Or via MSBuild:
+**With Entity Framework Core**:
+```json
+{
+  "MetaTypes.Generator": {
+    "EnableDiagnosticFiles": true,
+    "Generation": {
+      "BaseMetaTypes": true
+    },
+    "Discovery": {
+      "Syntax": true,
+      "CrossAssembly": true,
+      "Methods": [
+        "MetaTypes.Attribute", 
+        "MetaTypes.Reference",
+        "EfCore.TableAttribute",
+        "EfCore.DbContextSet"
+      ]
+    },
+    "Vendors": {
+      "EfCore": {
+        "RequireBaseTypes": true,
+        "IncludeNavigationProperties": true,
+        "IncludeForeignKeys": true
+      }
+    }
+  }
+}
+```
+
+**Project file setup**:
 ```xml
-<PropertyGroup>
-  <MetaTypeAssemblyName>MyApp.Business</MetaTypeAssemblyName>
-  <MetaTypeEfCoreDetection>true</MetaTypeEfCoreDetection>
-</PropertyGroup>
+<ItemGroup>
+  <AdditionalFiles Include="metatypes.config.json" Type="MetaTypes.Generator.Options" />
+  <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="Type" />
+</ItemGroup>
 ```
 
 ## How It Works
@@ -191,10 +227,17 @@ dotnet build
 dotnet test
 ```
 
-### Run the sample
+### Run the samples
 
+**Basic MetaTypes generation:**
 ```bash
 cd samples/Sample.Console
+dotnet run
+```
+
+**Entity Framework Core vendor generation:**
+```bash
+cd samples/Vendor/EfCore/Sample.EfCore.LocalOnly
 dotnet run
 ```
 
