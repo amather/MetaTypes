@@ -14,8 +14,8 @@ public class GeneratorConfigSection : IGeneratorConfigSection
     [JsonPropertyName("Generation")]
     public GenerationConfig Generation { get; set; } = new();
     
-    [JsonPropertyName("AssemblyName")]
-    public string? AssemblyName { get; set; }
+    [JsonPropertyName("GeneratedNamespace")]
+    public string? GeneratedNamespace { get; set; }
     
     IDiscoveryConfig IGeneratorConfigSection.Discovery => Discovery;
     IGenerationConfig IGeneratorConfigSection.Generation => Generation;

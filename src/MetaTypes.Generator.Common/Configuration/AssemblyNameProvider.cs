@@ -4,9 +4,9 @@ using MetaTypes.Abstractions;
 namespace MetaTypes.Generator.Common;
 
 /// <summary>
-/// Default implementation of assembly name handling using MetaTypes' superior approach.
+/// Default implementation of namespace handling using MetaTypes' superior approach.
 /// This is the exact same logic used by MetaTypes generators - respects real assembly names
-/// instead of aggressive suffix removal.
+/// or uses configured namespace overrides.
 /// </summary>
 public class AssemblyNameProvider : IAssemblyNameProvider
 {
@@ -19,7 +19,7 @@ public class AssemblyNameProvider : IAssemblyNameProvider
 
     /// <summary>
     /// Gets the target namespace using MetaTypes' assembly name logic:
-    /// - Use explicit configuration if provided (config.AssemblyName)
+    /// - Use explicit configuration if provided (config.GeneratedNamespace)
     /// - Otherwise use the actual assembly name (respecting real assembly names)
     /// 
     /// This follows MetaTypes' approach from MetaTypeSourceGenerator.cs lines 87-88.
@@ -32,12 +32,12 @@ public class AssemblyNameProvider : IAssemblyNameProvider
 
     /// <summary>
     /// Gets the target namespace when assembly name is already known.
-    /// Uses MetaTypes' logic: explicit config override, or actual assembly name.
+    /// Uses MetaTypes' logic: explicit namespace config override, or actual assembly name.
     /// </summary>
     public string GetTargetNamespace(string assemblyName, IGeneratorConfiguration config)
     {
-        // Use assembly name as namespace, or configured override if provided
+        // Use assembly name as namespace, or configured namespace override if provided
         // This is the exact MetaTypes logic from MetaTypeSourceGenerator.cs
-        return !string.IsNullOrEmpty(config.AssemblyName) ? config.AssemblyName! : assemblyName;
+        return !string.IsNullOrEmpty(config.GeneratedNamespace) ? config.GeneratedNamespace! : assemblyName;
     }
 }

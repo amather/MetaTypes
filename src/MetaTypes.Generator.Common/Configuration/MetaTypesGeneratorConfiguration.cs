@@ -8,10 +8,10 @@ namespace MetaTypes.Generator.Common;
 public class MetaTypesGeneratorConfiguration
 {
     /// <summary>
-    /// Top-level assembly name shared by all generators
+    /// Top-level generated namespace shared by all generators
     /// </summary>
-    [JsonPropertyName("AssemblyName")]
-    public string? AssemblyName { get; set; }
+    [JsonPropertyName("GeneratedNamespace")]
+    public string? GeneratedNamespace { get; set; }
     
     [JsonPropertyName("MetaTypes.Generator")]
     public BaseGeneratorOptions? BaseGenerator { get; set; }

@@ -32,8 +32,8 @@ public static class ConfigurationLoader
             var config = ParseConfiguration(content);
             if (config != null)
             {
-                // Merge top-level AssemblyName into generator sections if they don't have their own
-                MergeAssemblyNames(config);
+                // Merge top-level GeneratedNamespace into generator sections if they don't have their own
+                MergeGeneratedNamespaces(config);
                 
                 // Add debug info showing successful load
                 if (config.BaseGenerator != null)
@@ -67,14 +67,14 @@ public static class ConfigurationLoader
     }
     
     /// <summary>
-    /// Merges top-level AssemblyName into generator sections that don't have their own
+    /// Merges top-level GeneratedNamespace into generator sections that don't have their own
     /// </summary>
-    private static void MergeAssemblyNames(MetaTypesGeneratorConfiguration config)
+    private static void MergeGeneratedNamespaces(MetaTypesGeneratorConfiguration config)
     {
-        if (string.IsNullOrEmpty(config.AssemblyName)) return;
+        if (string.IsNullOrEmpty(config.GeneratedNamespace)) return;
         
-        if (config.BaseGenerator?.AssemblyName == null)
-            config.BaseGenerator!.AssemblyName = config.AssemblyName;
+        if (config.BaseGenerator?.GeneratedNamespace == null)
+            config.BaseGenerator!.GeneratedNamespace = config.GeneratedNamespace;
     }
 
     /// <summary>

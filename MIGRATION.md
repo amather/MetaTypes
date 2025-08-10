@@ -216,6 +216,23 @@ If your project discovers types from referenced assemblies, ensure `CrossAssembl
 }
 ```
 
+### Step 4: Configure Custom Namespace (Optional)
+
+To override the default namespace for generated types, use `GeneratedNamespace`:
+
+```json
+{
+  "MetaTypes.Generator": {
+    "GeneratedNamespace": "MyApp.Generated",
+    "Generation": {
+      "BaseMetaTypes": true
+    }
+  }
+}
+```
+
+This replaces the old `AssemblyName` configuration option.
+
 ## 🏗️ New Vendor-Based Architecture
 
 ### Unified Generator System

@@ -1,16 +1,16 @@
 namespace MetaTypes.Abstractions;
 
 /// <summary>
-/// Interface for generator configurations that support assembly name overrides.
-/// This allows generators to use MetaTypes' superior assembly name logic.
+/// Interface for generator configurations that support namespace overrides.
+/// This allows generators to customize the target namespace for generated code.
 /// </summary>
 public interface IGeneratorConfiguration
 {
     /// <summary>
-    /// Optional assembly name override. If provided, this will be used as the target namespace
-    /// instead of the actual assembly name.
+    /// Optional generated namespace override. If provided, this will be used as the target namespace
+    /// for generated code instead of the actual assembly name.
     /// </summary>
-    string? AssemblyName { get; }
+    string? GeneratedNamespace { get; }
 }
 
 /// <summary>
