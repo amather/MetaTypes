@@ -96,6 +96,7 @@ namespace MetaTypes.Generator.Common.Vendor.EfCore.Generation
             
             sb.AppendLine("#nullable enable");
             sb.AppendLine("using MetaTypes.Abstractions;");
+            sb.AppendLine("using MetaTypes.Abstractions.Vendor.EfCore;");
             sb.AppendLine();
             
             // Use the assembly name for the MetaType namespace to match the base generator

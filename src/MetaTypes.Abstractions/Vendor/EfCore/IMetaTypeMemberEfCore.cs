@@ -1,4 +1,6 @@
-namespace MetaTypes.Abstractions;
+using MetaTypes.Abstractions;
+
+namespace MetaTypes.Abstractions.Vendor.EfCore;
 
 /// <summary>
 /// Extends IMetaTypeMember with Entity Framework Core specific metadata.
