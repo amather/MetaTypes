@@ -1,6 +1,23 @@
+# Disclaimer from a human
+
+This project was vibe coded with claude code and it had a very hard time to understand (i.e. not hallucinate) what .NET source generators can do and what not. 
+
+The current state of the code is: compiling, but missing real-world usage. 
+
+Lot's of code has been reviewed by a human, but only for logic errors, not elegance.
+
+Further development will be done in private repo, this is only a showcase of what's possible. Once the private repo (Statics framework) can be open sourced, this project will have underwent:
+
+- full human code review, including AI instructions to block manipulation of certain files or methods (AI freeze)
+- clear documentation and approach for vendors to add to this source generator
+
+Until then, input is welcomed, but consider this repo as a proof of concept, not more.
+
+(amather, Aug 13th 2025)
+
 # MetaTypes
 
-A C# source generator that creates compile-time metadata for classes, structs, records, and enums to reduce reflection overhead at runtime. Features a vendor-based architecture with Entity Framework Core extensions.
+A C# source generator that creates compile-time metadata for classes, structs, records, and enums to reduce reflection overhead at runtime. Features a vendor-based architecture that allows to extend the discovery of types and generation of metadata.
 
 ## Features
 
