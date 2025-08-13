@@ -36,7 +36,7 @@ class Program
         Console.WriteLine($"✅ Retrieved {staticsMetaTypes.Count} Statics MetaTypes via vendor-specific DI:");
         foreach (var staticsType in staticsMetaTypes)
         {
-            Console.WriteLine($"  - {staticsType.Name}:");
+            Console.WriteLine($"  - {((global::MetaTypes.Abstractions.IMetaType)staticsType).ManagedTypeName}:");
             Console.WriteLine($"    Service Methods: {staticsType.ServiceMethods.Count}");
             foreach (var method in staticsType.ServiceMethods)
             {
@@ -45,10 +45,10 @@ class Program
         }
         
         // Demonstrate specific Statics MetaType retrieval
-        var userServicesMetaType = serviceProvider.GetStaticsMetaType<UserServices>();
+        var userServicesMetaType = serviceProvider.GetStaticsMetaType(typeof(UserServices));
         if (userServicesMetaType != null)
         {
-            Console.WriteLine($"\n✅ Retrieved specific Statics MetaType: {userServicesMetaType.Name}");
+            Console.WriteLine($"\n✅ Retrieved specific Statics MetaType: {((global::MetaTypes.Abstractions.IMetaType)userServicesMetaType).ManagedTypeName}");
             Console.WriteLine($"   Service Methods Count: {userServicesMetaType.ServiceMethods.Count}");
             
             var firstMethod = userServicesMetaType.ServiceMethods.FirstOrDefault();
