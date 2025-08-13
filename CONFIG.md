@@ -1,7 +1,5 @@
 # MetaTypes Configuration Guide
 
-> **✅ Updated August 10th, 2025** - All configuration examples have been verified with the current working architecture.
-
 ## Configuration File Setup
 
 ### 1. Create metatypes.config.json
@@ -12,14 +10,12 @@ In your `.csproj` file, add the configuration file with proper metadata for the 
 
 ```xml
 <ItemGroup>
-  <!-- MetaTypes generator configuration (JSON) -->
   <AdditionalFiles Include="metatypes.config.json" Type="MetaTypes.Generator.Options" />
-  <!-- Make configuration file metadata visible to source generators -->
   <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="Type" />
 </ItemGroup>
 ```
 
-**Important**: Both the `Type="MetaTypes.Generator.Options"` metadata and the `CompilerVisibleItemMetadata` are required for the generator to find and load your configuration.
+Both the `Type="MetaTypes.Generator.Options"` metadata and the `CompilerVisibleItemMetadata` are required for the generator to find and load your configuration.
 
 ## Configuration Format
 
@@ -28,12 +24,10 @@ The configuration uses the following structure:
 ```json
 {
   "MetaTypes.Generator": {
-    "EnableDiagnosticFiles": true,
     "Generation": {
       "BaseMetaTypes": true
     },
     "Discovery": {
-      "Syntax": true,
       "CrossAssembly": true,
       "Methods": ["MetaTypes.Attribute", "MetaTypes.Reference"]
     },
@@ -56,7 +50,6 @@ The configuration uses the following structure:
 - **`BaseMetaTypes`** (bool): Whether to generate base MetaType classes. Set to `true` for primary projects, `false` for vendor-only projects.
 
 #### Discovery Settings
-- **`Syntax`** (bool): Enable syntax tree analysis for type discovery
 - **`CrossAssembly`** (bool): Enable cross-assembly reference scanning
 - **`Methods`** (string[]): Array of discovery method identifiers
 
@@ -67,7 +60,7 @@ The configuration uses the following structure:
 - **`"MetaTypes.Reference"`**: Discovers referenced types that have `[MetaType]` attribute
 
 #### EfCore Vendor Methods
-- **`"EfCore.TableAttribute"`**: Discovers EF Core entities with `[Table]` attribute via syntax analysis
+- **`"EfCore.TableAttribute"`**: Discovers EF Core entities with `[Table]` attribute
 - **`"EfCore.DbContextSet"`**: Discovers entity types by scanning `DbContext` `DbSet<T>` properties
 
 ### Vendor Configuration
@@ -79,16 +72,12 @@ The configuration uses the following structure:
 
 ## Example Configurations
 
-### Basic Project (Generate Base Types Only)
+### Basic Project
 ```json
 {
   "MetaTypes.Generator": {
-    "EnableDiagnosticFiles": true,
-    "Generation": {
-      "BaseMetaTypes": true
-    },
+    "Generation": { "BaseMetaTypes": true },
     "Discovery": {
-      "Syntax": true,
       "CrossAssembly": true,
       "Methods": ["MetaTypes.Attribute", "MetaTypes.Reference"]
     }
@@ -96,23 +85,14 @@ The configuration uses the following structure:
 }
 ```
 
-### EfCore Project (With Vendor Extensions)
+### Entity Framework Core Project
 ```json
 {
   "MetaTypes.Generator": {
-    "EnableDiagnosticFiles": true,
-    "Generation": {
-      "BaseMetaTypes": true
-    },
+    "Generation": { "BaseMetaTypes": true },
     "Discovery": {
-      "Syntax": true,
       "CrossAssembly": true,
-      "Methods": [
-        "MetaTypes.Attribute", 
-        "MetaTypes.Reference",
-        "EfCore.TableAttribute",
-        "EfCore.DbContextSet"
-      ]
+      "Methods": ["MetaTypes.Attribute", "EfCore.TableAttribute"]
     },
     "Vendors": {
       "EfCore": {
@@ -125,16 +105,12 @@ The configuration uses the following structure:
 }
 ```
 
-### Infrastructure Project (No Base Types)
+### Infrastructure Project (Vendor Only)
 ```json
 {
   "MetaTypes.Generator": {
-    "EnableDiagnosticFiles": true,
-    "Generation": {
-      "BaseMetaTypes": false
-    },
+    "Generation": { "BaseMetaTypes": false },
     "Discovery": {
-      "Syntax": true,
       "CrossAssembly": false,
       "Methods": ["MetaTypes.Attribute"]
     }
@@ -169,51 +145,18 @@ obj/Debug/net{version}/generated/MetaTypes.Generator/MetaTypes.Generator.MetaTyp
 // - Types: Customer (Syntax by [MetaTypes.Attribute]), Order (Syntax by [MetaTypes.Attribute, EfCore.TableAttribute])
 ```
 
-## Working Examples
+## Debugging Configuration
 
-**Verified working configurations from sample projects:**
+To enable diagnostic output, add `"EnableDiagnosticFiles": true` to your configuration:
 
-### Basic Project (Sample.Console)
 ```json
 {
   "MetaTypes.Generator": {
     "EnableDiagnosticFiles": true,
-    "Generation": {
-      "BaseMetaTypes": true
-    },
+    "Generation": { "BaseMetaTypes": true },
     "Discovery": {
-      "Syntax": true,
       "CrossAssembly": true,
-      "Methods": ["MetaTypes.Attribute", "MetaTypes.Reference"]
-    }
-  }
-}
-```
-
-### EfCore Project (Sample.EfCore.LocalOnly)
-```json
-{
-  "MetaTypes.Generator": {
-    "EnableDiagnosticFiles": true,
-    "Generation": {
-      "BaseMetaTypes": true
-    },
-    "Discovery": {
-      "Syntax": true,
-      "CrossAssembly": true,
-      "Methods": [
-        "MetaTypes.Attribute", 
-        "MetaTypes.Reference",
-        "EfCore.TableAttribute",
-        "EfCore.DbContextSet"
-      ]
-    },
-    "Vendors": {
-      "EfCore": {
-        "RequireBaseTypes": true,
-        "IncludeNavigationProperties": true,
-        "IncludeForeignKeys": true
-      }
+      "Methods": ["MetaTypes.Attribute"]
     }
   }
 }

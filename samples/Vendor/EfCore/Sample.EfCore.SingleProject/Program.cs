@@ -5,6 +5,9 @@ using Microsoft.Extensions.Hosting;
 using MetaTypes.Abstractions.Vendor.EfCore;
 using Sample.EfCore.SingleProject.Data;
 
+// Import the namespace where MetaTypes extension methods are generated
+using Sample.EfCore.SingleProject;
+
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
     {
@@ -35,18 +38,18 @@ using (var scope = host.Services.CreateScope())
     Console.WriteLine($"✅ Retrieved {efCoreMetaTypes.Count} EfCore MetaTypes via vendor-specific DI:");
     foreach (var efCoreType in efCoreMetaTypes)
     {
-        Console.WriteLine($"  - {efCoreType.Name}:");
+        Console.WriteLine($"  - {((global::MetaTypes.Abstractions.IMetaType)efCoreType).ManagedTypeName}:");
         Console.WriteLine($"    Table: {efCoreType.TableName}");
-        Console.WriteLine($"    Keys: {string.Join(", ", efCoreType.Keys.Select(k => k.Name))}");
+        Console.WriteLine($"    Keys: {string.Join(", ", efCoreType.Keys.Select(k => ((global::MetaTypes.Abstractions.IMetaTypeMember)k).MemberName))}");
     }
     
     // Demonstrate specific EfCore MetaType retrieval
     var localEntityMetaType = serviceProvider.GetEfCoreMetaType<Sample.EfCore.SingleProject.Models.LocalEntity>();
     if (localEntityMetaType != null)
     {
-        Console.WriteLine($"\n✅ Retrieved specific EfCore MetaType: {localEntityMetaType.Name}");
+        Console.WriteLine($"\n✅ Retrieved specific EfCore MetaType: {((global::MetaTypes.Abstractions.IMetaType)localEntityMetaType).ManagedTypeName}");
         Console.WriteLine($"   Table Name: {localEntityMetaType.TableName}");
-        Console.WriteLine($"   Primary Keys: {string.Join(", ", localEntityMetaType.Keys.Select(k => k.Name))}");
+        Console.WriteLine($"   Primary Keys: {string.Join(", ", localEntityMetaType.Keys.Select(k => ((global::MetaTypes.Abstractions.IMetaTypeMember)k).MemberName))}");
     }
     
     Console.WriteLine("\n✅ Database created successfully");

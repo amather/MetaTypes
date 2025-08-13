@@ -1,83 +1,73 @@
 # MetaTypes
 
-A unified C# source generator that creates compile-time metadata for classes, structs, records, and enums to reduce reflection overhead at runtime. Features a vendor-based architecture with Entity Framework Core extensions.
-
-> **✅ Fully Functional** - Vendor-based architecture implemented and tested (August 10th, 2025)
+A C# source generator that creates compile-time metadata for classes, structs, records, and enums to reduce reflection overhead at runtime. Features a vendor-based architecture with Entity Framework Core extensions.
 
 ## Features
 
-- 🚀 **Zero runtime reflection** - All metadata is generated at compile time
-- 🔍 **Expression-based member access** - Type-safe member discovery using lambda expressions
-- 🏗️ **Multi-assembly support** - Works across multiple assemblies in the same solution
-- 🔌 **Dependency Injection integration** - Built-in DI extensions for easy registration
-- 📦 **Modern C#** - Built with .NET 8+, C# 13, and nullable reference types
-- ⚡ **Performance optimized** - Singleton patterns and compile-time constants
-- 🔌 **Vendor Extensions** - Pluggable vendor system with Entity Framework Core support
-- 🎯 **Unified Architecture** - Single generator with vendor plugins for specialized metadata
+- **Compile-time metadata generation** - Eliminates runtime reflection overhead
+- **Expression-based member access** - Type-safe member discovery using lambda expressions  
+- **Multi-assembly support** - Works across multiple assemblies in the same solution
+- **Dependency injection integration** - Built-in DI extensions for registration
+- **Vendor extensibility** - Pluggable vendor system with Entity Framework Core support
+- **Performance optimization** - Singleton patterns and compile-time constants
 
 ## Quick Start
 
-### 1. Install the packages
+### Entity Framework Core Integration
 
-```xml
-<ItemGroup>
-  <PackageReference Include="MetaTypes.Abstractions" Version="1.0.0" />
-  <PackageReference Include="MetaTypes.Generator" Version="1.0.0" PrivateAssets="all" />
-</ItemGroup>
+1. **Configure your project** with `metatypes.config.json`:
+
+```json
+{
+  "MetaTypes.Generator": {
+    "Generation": { "BaseMetaTypes": true },
+    "Discovery": {
+      "CrossAssembly": true,
+      "Methods": ["MetaTypes.Attribute", "EfCore.TableAttribute"]
+    },
+    "Vendors": {
+      "EfCore": {
+        "RequireBaseTypes": true,
+        "IncludeNavigationProperties": true
+      }
+    }
+  }
+}
 ```
 
-### 2. Mark your types
+2. **Mark your Entity Framework entities**:
 
 ```csharp
 using MetaTypes.Abstractions;
+using System.ComponentModel.DataAnnotations.Schema;
 
 [MetaType]
+[Table("Customers")]
 public class Customer
 {
     public int Id { get; set; }
     public string Name { get; set; } = "";
     public string Email { get; set; } = "";
-    public List<CustomerAddress> Addresses { get; set; } = [];
+    public DateTime CreatedAt { get; set; }
 }
 ```
 
-### 3. Register with DI
+3. **Register with dependency injection**:
 
 ```csharp
-using MetaTypes.Abstractions;
-
-var builder = Host.CreateApplicationBuilder(args);
-
-// Register MetaTypes from your assemblies
-builder.Services.AddMetaTypes<MyApp.Business.MetaTypes>();
-builder.Services.AddMetaTypes<MyApp.Auth.MetaTypes>();
-
-var host = builder.Build();
+builder.Services.AddMetaTypesMyAppEfCore(); // Generated method
 ```
 
-### 4. Use the MetaTypes
+4. **Access Entity Framework metadata**:
 
 ```csharp
-// Get MetaType for a specific type
-var customerMetaType = serviceProvider.GetMetaType<Customer>();
-
-Console.WriteLine($"Type: {customerMetaType.ManagedTypeName}");
-Console.WriteLine($"Namespace: {customerMetaType.ManagedTypeNamespace}");
-Console.WriteLine($"Members: {customerMetaType.Members.Count}");
-
-// Find members by name
-var nameProperty = customerMetaType.FindMember("Name");
-Console.WriteLine($"Name property type: {nameProperty?.MemberType.Name}");
-
-// Find members by expression (type-safe)
-var emailProperty = customerMetaType.FindMember<string>(c => c.Email);
-Console.WriteLine($"Email property: {emailProperty?.MemberName}");
-
-// Iterate through all members
-foreach (var member in customerMetaType.Members)
+var efCoreTypes = serviceProvider.GetEfCoreMetaTypes();
+foreach (var entityType in efCoreTypes)
 {
-    Console.WriteLine($"{member.MemberName} ({member.MemberType.Name}) - " +
-                     $"HasSetter: {member.HasSetter}, IsList: {member.IsList}");
+    Console.WriteLine($"Table: {entityType.TableName}");
+    
+    var keys = entityType.Keys;
+    Console.WriteLine($"Primary keys: {string.Join(", ", keys.Select(k => ((IMetaTypeMember)k).MemberName))}");
 }
 ```
 
@@ -89,18 +79,14 @@ foreach (var member in customerMetaType.Members)
 - Generated types with detailed API documentation
 - Usage patterns and best practices
 
-### Quick Configuration
+### Configuration Reference
 
-**Basic project** (metatypes.config.json):
+**Basic configuration** (metatypes.config.json):
 ```json
 {
   "MetaTypes.Generator": {
-    "EnableDiagnosticFiles": true,
-    "Generation": {
-      "BaseMetaTypes": true
-    },
+    "Generation": { "BaseMetaTypes": true },
     "Discovery": {
-      "Syntax": true,
       "CrossAssembly": true,
       "Methods": ["MetaTypes.Attribute", "MetaTypes.Reference"]
     }
@@ -108,23 +94,14 @@ foreach (var member in customerMetaType.Members)
 }
 ```
 
-**With Entity Framework Core**:
+**Entity Framework Core vendor**:
 ```json
 {
   "MetaTypes.Generator": {
-    "EnableDiagnosticFiles": true,
-    "Generation": {
-      "BaseMetaTypes": true
-    },
+    "Generation": { "BaseMetaTypes": true },
     "Discovery": {
-      "Syntax": true,
       "CrossAssembly": true,
-      "Methods": [
-        "MetaTypes.Attribute", 
-        "MetaTypes.Reference",
-        "EfCore.TableAttribute",
-        "EfCore.DbContextSet"
-      ]
+      "Methods": ["MetaTypes.Attribute", "EfCore.TableAttribute"]
     },
     "Vendors": {
       "EfCore": {
@@ -136,6 +113,14 @@ foreach (var member in customerMetaType.Members)
   }
 }
 ```
+
+**Discovery methods**:
+- `MetaTypes.Attribute` - Types marked with `[MetaType]`
+- `MetaTypes.Reference` - Referenced types with `[MetaType]`
+- `EfCore.TableAttribute` - Entity Framework entities with `[Table]`
+- `EfCore.DbContextSet` - Entities referenced in `DbSet<T>` properties
+
+📖 **[Detailed Configuration Documentation](./docs/CONFIG.md)**
 
 **Project file setup**:
 ```xml
@@ -229,15 +214,15 @@ dotnet test
 
 ### Run the samples
 
-**Basic MetaTypes generation:**
+**Entity Framework Core vendor** (primary showcase):
 ```bash
-cd samples/Sample.Console
+cd samples/Vendor/EfCore/Sample.EfCore.SingleProject
 dotnet run
 ```
 
-**Entity Framework Core vendor generation:**
+**Basic MetaTypes generation**:
 ```bash
-cd samples/Vendor/EfCore/Sample.EfCore.LocalOnly
+cd samples/Sample.Console
 dotnet run
 ```
 

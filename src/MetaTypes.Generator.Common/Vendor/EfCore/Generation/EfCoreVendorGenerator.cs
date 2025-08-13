@@ -301,7 +301,7 @@ namespace MetaTypes.Generator.Common.Vendor.EfCore.Generation
             sb.AppendLine("    public static IMetaTypeEfCore? GetEfCoreMetaType<T>(this IServiceProvider serviceProvider)");
             sb.AppendLine("    {");
             sb.AppendLine("        return serviceProvider.GetServices<IMetaTypeEfCore>()");
-            sb.AppendLine("            .FirstOrDefault(mt => mt.ManagedType == typeof(T));");
+            sb.AppendLine("            .FirstOrDefault(mt => ((IMetaType)mt).ManagedType == typeof(T));");
             sb.AppendLine("    }");
             sb.AppendLine();
             
@@ -312,7 +312,7 @@ namespace MetaTypes.Generator.Common.Vendor.EfCore.Generation
             sb.AppendLine("    public static IMetaTypeEfCore? GetEfCoreMetaType(this IServiceProvider serviceProvider, Type entityType)");
             sb.AppendLine("    {");
             sb.AppendLine("        return serviceProvider.GetServices<IMetaTypeEfCore>()");
-            sb.AppendLine("            .FirstOrDefault(mt => mt.ManagedType == entityType);");
+            sb.AppendLine("            .FirstOrDefault(mt => ((IMetaType)mt).ManagedType == entityType);");
             sb.AppendLine("    }");
             
             sb.AppendLine("}");

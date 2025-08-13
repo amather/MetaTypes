@@ -1,20 +1,21 @@
 # MetaTypes Project
 
-A unified C# source generator that creates compile-time metadata for classes, structs, records, and enums to reduce reflection overhead at runtime. Features a vendor-based architecture that allows vendors to:
+A C# source generator that produces compile-time metadata for classes, structs, records, and enums to reduce reflection overhead at runtime. Implements a vendor-based architecture that allows extensibility through:
 
-- extend the methods by which types are discovered
-- extend the generated MetaTypes by providing own partial class extensions 
+- Custom type discovery methods
+- Vendor-specific metadata extensions via partial class generation
 
 ## Quick Start
 
+Primary showcase (Entity Framework Core vendor):
 ```bash
-cd samples/Sample.Console
+cd samples/Vendor/EfCore/Sample.EfCore.SingleProject
 dotnet run
 ```
 
-For Entity Framework Core vendor samples:
+Basic functionality:
 ```bash
-cd samples/Vendor/EfCore/Sample.EfCore.SingleProject
+cd samples/Sample.Console
 dotnet run
 ```
 
@@ -27,20 +28,19 @@ dotnet run
 
 ### Vendor System
 - **EfCore Vendor** - Entity Framework Core extensions with table mapping and relationships
-- **Statics Vendor** - Static analysis for service method discovery
+- **Statics Vendor** - Service method discovery for static classes
 
-## Recent Changes (August 2025)
+## Recent Architecture Changes
 
-1. **Target-Namespace-Specific DI Extensions** - Generated convenient DI extension methods based on target namespace
+1. **Target-Namespace-Specific DI Extensions** - Generate DI extension methods based on target namespace
 2. **Cross-Assembly Mode** - Unified provider generation that consolidates types from multiple assemblies
-3. **Vendor-Specific DI Methods** - Separate DI registration methods for EfCore and Statics vendors
-4. **Vendor Folder Structure Refactoring** - Refactored MetaTypes.Abstractions to implement the same vendor pattern as other projects
-5. **Statics Vendor Implementation** - Added new Statics vendor for service method discovery
-6. **Unified Architecture** - Single generator with pluggable vendor system and discovery methods
+3. **Vendor-Specific DI Methods** - Separate DI registration methods for each vendor
+4. **Vendor Folder Structure** - Consistent vendor pattern across all projects
+5. **Pluggable Vendor System** - Vendor-agnostic core with specialized extensions
 
 ## Generated DI Extension Methods
 
-MetaTypes now generates convenient DI extension methods based on the target namespace where the generator runs:
+The generator produces DI extension methods based on the target namespace where the generator runs:
 
 ### Cross-Assembly Mode
 ```json
