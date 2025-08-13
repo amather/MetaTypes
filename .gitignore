@@ -387,3 +387,6 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# LLM input files and directories (not part of project)
+llm_input/
