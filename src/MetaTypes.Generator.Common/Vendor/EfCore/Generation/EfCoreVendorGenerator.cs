@@ -77,6 +77,14 @@ namespace MetaTypes.Generator.Common.Vendor.EfCore.Generation
                 yield break;
             }
 
+            // Generate EfCore DI extension methods for the target namespace
+            var diExtensionsSource = GenerateEfCoreServiceCollectionExtensions(context.TargetNamespace);
+            yield return new GeneratedFile
+            {
+                FileName = $"EfCoreServiceCollectionExtensions.g.cs",
+                Content = diExtensionsSource
+            };
+            
             // Generate EfCore extensions for each discovered entity type
             foreach (var entityType in efCoreTypes)
             {
@@ -220,6 +228,96 @@ namespace MetaTypes.Generator.Common.Vendor.EfCore.Generation
             return property.GetAttributes().Any(a => 
                 a.AttributeClass?.Name == "NotMappedAttribute" || 
                 a.AttributeClass?.Name == "NotMapped");
+        }
+
+        /// <summary>
+        /// Generates EfCore-specific DI extension methods for the target namespace.
+        /// </summary>
+        private string GenerateEfCoreServiceCollectionExtensions(string targetNamespace)
+        {
+            var sb = new StringBuilder();
+            
+            sb.AppendLine("#nullable enable");
+            sb.AppendLine("using System;");
+            sb.AppendLine("using System.Collections.Generic;");
+            sb.AppendLine("using System.Linq;");
+            sb.AppendLine("using Microsoft.Extensions.DependencyInjection;");
+            sb.AppendLine("using MetaTypes.Abstractions;");
+            sb.AppendLine("using MetaTypes.Abstractions.Vendor.EfCore;");
+            sb.AppendLine();
+            sb.AppendLine($"namespace {targetNamespace};");
+            sb.AppendLine();
+            sb.AppendLine("/// <summary>");
+            sb.AppendLine($"/// EfCore vendor DI extension methods for MetaTypes generated in {targetNamespace} namespace.");
+            sb.AppendLine("/// </summary>");
+            sb.AppendLine("public static class EfCoreServiceCollectionExtensions");
+            sb.AppendLine("{");
+            
+            // Generate the EfCore-specific AddMetaTypes method
+            var methodName = NamingUtils.ToAddVendorMetaTypesMethodName(targetNamespace, "EfCore");
+            sb.AppendLine("    /// <summary>");
+            sb.AppendLine($"    /// Registers EfCore-specific MetaTypes from the {targetNamespace} namespace.");
+            sb.AppendLine($"    /// This registers IMetaTypeEfCore interfaces for all EfCore entity types.");
+            sb.AppendLine("    /// </summary>");
+            sb.AppendLine($"    public static IServiceCollection {methodName}(this IServiceCollection services)");
+            sb.AppendLine("    {");
+            sb.AppendLine($"        // First register the base MetaTypes");
+            sb.AppendLine($"        services.{NamingUtils.ToAddMetaTypesMethodName(targetNamespace)}();");
+            sb.AppendLine();
+            sb.AppendLine("        // Register EfCore-specific interfaces");
+            sb.AppendLine($"        foreach (var metaType in {targetNamespace}.MetaTypes.Instance.AssemblyMetaTypes)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            if (metaType is IMetaTypeEfCore efCoreType)");
+            sb.AppendLine("            {");
+            sb.AppendLine("                services.AddSingleton<IMetaTypeEfCore>(efCoreType);");
+            sb.AppendLine("            }");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+            sb.AppendLine("        return services;");
+            sb.AppendLine("    }");
+            
+            sb.AppendLine("}");
+            sb.AppendLine();
+            sb.AppendLine("/// <summary>");
+            sb.AppendLine("/// EfCore vendor service provider extension methods for retrieving registered MetaTypes.");
+            sb.AppendLine("/// </summary>");
+            sb.AppendLine("public static class EfCoreServiceProviderExtensions");
+            sb.AppendLine("{");
+            
+            // Add GetEfCoreMetaTypes method
+            sb.AppendLine("    /// <summary>");
+            sb.AppendLine("    /// Gets all registered EfCore MetaTypes from the service provider.");
+            sb.AppendLine("    /// </summary>");
+            sb.AppendLine("    public static IEnumerable<IMetaTypeEfCore> GetEfCoreMetaTypes(this IServiceProvider serviceProvider)");
+            sb.AppendLine("    {");
+            sb.AppendLine("        return serviceProvider.GetServices<IMetaTypeEfCore>();");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+            
+            // Add generic GetEfCoreMetaType method
+            sb.AppendLine("    /// <summary>");
+            sb.AppendLine("    /// Gets a specific EfCore MetaType by entity type.");
+            sb.AppendLine("    /// </summary>");
+            sb.AppendLine("    public static IMetaTypeEfCore? GetEfCoreMetaType<T>(this IServiceProvider serviceProvider)");
+            sb.AppendLine("    {");
+            sb.AppendLine("        return serviceProvider.GetServices<IMetaTypeEfCore>()");
+            sb.AppendLine("            .FirstOrDefault(mt => mt.ManagedType == typeof(T));");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+            
+            // Add non-generic GetEfCoreMetaType method
+            sb.AppendLine("    /// <summary>");
+            sb.AppendLine("    /// Gets a specific EfCore MetaType by entity type.");
+            sb.AppendLine("    /// </summary>");
+            sb.AppendLine("    public static IMetaTypeEfCore? GetEfCoreMetaType(this IServiceProvider serviceProvider, Type entityType)");
+            sb.AppendLine("    {");
+            sb.AppendLine("        return serviceProvider.GetServices<IMetaTypeEfCore>()");
+            sb.AppendLine("            .FirstOrDefault(mt => mt.ManagedType == entityType);");
+            sb.AppendLine("    }");
+            
+            sb.AppendLine("}");
+            
+            return sb.ToString();
         }
     }
     

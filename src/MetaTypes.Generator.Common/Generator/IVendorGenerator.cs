@@ -56,6 +56,11 @@ namespace MetaTypes.Generator.Common.Generator
         public VendorConfiguration? Configuration { get; set; }
         public bool EnableDiagnostics { get; set; }
         public Dictionary<string, string> Properties { get; set; } = new();
+        
+        /// <summary>
+        /// The target namespace where the generator is running (for DI extension methods)
+        /// </summary>
+        public string TargetNamespace { get; set; } = "";
     }
     
     /// <summary>

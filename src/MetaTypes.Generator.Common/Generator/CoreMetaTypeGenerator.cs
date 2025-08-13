@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using MetaTypes.Generator.Common.Generator;
 
 namespace MetaTypes.Generator.Common;
 
@@ -43,9 +44,43 @@ public static class CoreMetaTypeGenerator
     }
 
     /// <summary>
+    /// Generates the DI extension class with target-namespace-specific registration methods.
+    /// </summary>
+    public static string GenerateServiceCollectionExtensions(string assemblyNamespace)
+    {
+        var sb = new StringBuilder();
+        
+        sb.AppendLine("#nullable enable");
+        sb.AppendLine("using Microsoft.Extensions.DependencyInjection;");
+        sb.AppendLine("using MetaTypes.Abstractions;");
+        sb.AppendLine();
+        sb.AppendLine($"namespace {assemblyNamespace};");
+        sb.AppendLine();
+        sb.AppendLine("/// <summary>");
+        sb.AppendLine($"/// DI extension methods for MetaTypes generated in {assemblyNamespace} namespace.");
+        sb.AppendLine("/// </summary>");
+        sb.AppendLine("public static class MetaTypesServiceCollectionExtensions");
+        sb.AppendLine("{");
+        
+        // Generate the main AddMetaTypes method
+        var methodName = NamingUtils.ToAddMetaTypesMethodName(assemblyNamespace);
+        sb.AppendLine("    /// <summary>");
+        sb.AppendLine($"    /// Registers all MetaTypes from the {assemblyNamespace} namespace.");
+        sb.AppendLine("    /// </summary>");
+        sb.AppendLine($"    public static IServiceCollection {methodName}(this IServiceCollection services)");
+        sb.AppendLine("    {");
+        sb.AppendLine($"        return services.AddMetaTypes<{assemblyNamespace}.MetaTypes>();");
+        sb.AppendLine("    }");
+        
+        sb.AppendLine("}");
+        
+        return sb.ToString();
+    }
+
+    /// <summary>
     /// Generates a complete MetaType class for the given type symbol.
     /// </summary>
-    public static string GenerateMetaTypeClass(INamedTypeSymbol typeSymbol, string assemblyNamespace, IList<INamedTypeSymbol>? discoveredTypes = null)
+    public static string GenerateMetaTypeClass(INamedTypeSymbol typeSymbol, string assemblyNamespace, IList<INamedTypeSymbol>? discoveredTypes = null, bool useCrossAssemblyReferences = false)
     {
         var sb = new StringBuilder();
         
@@ -156,7 +191,7 @@ public static class CoreMetaTypeGenerator
         sb.AppendLine();
         foreach (var property in properties)
         {
-            sb.AppendLine(GenerateMetaTypeMemberClass(typeSymbol, property, discoveredTypes));
+            sb.AppendLine(GenerateMetaTypeMemberClass(typeSymbol, property, discoveredTypes, assemblyNamespace, useCrossAssemblyReferences));
             sb.AppendLine();
         }
 
@@ -166,7 +201,7 @@ public static class CoreMetaTypeGenerator
     /// <summary>
     /// Generates a MetaTypeMember class for a specific property.
     /// </summary>
-    private static string GenerateMetaTypeMemberClass(INamedTypeSymbol typeSymbol, IPropertySymbol property, IList<INamedTypeSymbol>? discoveredTypes)
+    private static string GenerateMetaTypeMemberClass(INamedTypeSymbol typeSymbol, IPropertySymbol property, IList<INamedTypeSymbol>? discoveredTypes, string targetNamespace, bool useCrossAssemblyReferences)
     {
         var sb = new StringBuilder();
         
@@ -232,7 +267,7 @@ public static class CoreMetaTypeGenerator
         }
 
         // Cross-reference detection: check if property type has a MetaType
-        var (isMetaType, metaTypeReference) = DetectMetaTypeCrossReference(property, discoveredTypes);
+        var (isMetaType, metaTypeReference) = DetectMetaTypeCrossReference(property, discoveredTypes, targetNamespace, useCrossAssemblyReferences);
         sb.AppendLine($"    public bool IsMetaType => {(isMetaType ? "true" : "false")};");
         sb.AppendLine($"    public IMetaType? MetaType => {(metaTypeReference != null ? metaTypeReference : "null")};");
         
@@ -278,7 +313,7 @@ public static class CoreMetaTypeGenerator
     /// <summary>
     /// Detects if a property type has a corresponding MetaType among the discovered types
     /// </summary>
-    private static (bool isMetaType, string? metaTypeReference) DetectMetaTypeCrossReference(IPropertySymbol property, IList<INamedTypeSymbol>? discoveredTypes)
+    private static (bool isMetaType, string? metaTypeReference) DetectMetaTypeCrossReference(IPropertySymbol property, IList<INamedTypeSymbol>? discoveredTypes, string targetNamespace, bool useCrossAssemblyReferences)
     {
         if (discoveredTypes == null || discoveredTypes.Count == 0)
             return (false, null);
@@ -326,8 +361,18 @@ public static class CoreMetaTypeGenerator
                 
             if (matchingType != null)
             {
-                // Generate the MetaType reference - use the assembly name as namespace
-                var metaTypeNamespace = matchingType.ContainingAssembly.Name;
+                // Generate the MetaType reference 
+                string metaTypeNamespace;
+                if (useCrossAssemblyReferences)
+                {
+                    // In cross-assembly mode, all MetaTypes are in the target namespace
+                    metaTypeNamespace = targetNamespace;
+                }
+                else
+                {
+                    // In single-project mode, use the assembly name as namespace
+                    metaTypeNamespace = matchingType.ContainingAssembly.Name;
+                }
                 return (true, $"{metaTypeNamespace}.{matchingType.Name}MetaType.Instance");
             }
         }

@@ -28,6 +28,10 @@
   <ItemGroup>
     <ProjectReference Include="../../src/MetaTypes.Abstractions/MetaTypes.Abstractions.csproj" />
     <ProjectReference Include="../../src/MetaTypes.Generator/MetaTypes.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    
+    <!-- Cross-assembly references for MetaType discovery -->
+    <ProjectReference Include="../Sample.Business/Sample.Business.csproj" />
+    <ProjectReference Include="../Sample.Auth/Sample.Auth.csproj" />
   </ItemGroup>
 
 </Project>

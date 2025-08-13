@@ -6,7 +6,10 @@ This folder contains shared source generator code that gets linked into the main
 ## Key Components
 
 ### Generator/ - Core Generator Classes
-- **CoreMetaTypeGenerator** - Abstract base class that source generators should extend. Provides common generation logic and structure.
+- **CoreMetaTypeGenerator** - Static class providing MetaType class generation and DI extension method generation
+- **NamingUtils** - Shared utilities for consistent naming across generators (ToPascalCase, ToMethodName, ToAddMetaTypesMethodName)
+- **IVendorGenerator** - Interface for vendor-specific generators
+- **VendorGeneratorRegistry** - Registry for discovering and managing vendor generators
 
 ### Discovery/ - Pluggable Type Discovery System
 - **DiscoveredType** - Model representing a discovered type with discovery metadata and helper methods
@@ -41,9 +44,29 @@ The unified generator architecture works as follows:
 4. **Aggregation**: Multiple discovery methods can find the same type, results are aggregated
 
 ### Generation Process
-1. **Base Generation**: Standard MetaType classes are generated (if `BaseMetaTypes: true`)
+1. **Base Generation**: Standard MetaType classes and DI extensions are generated (if `BaseMetaTypes: true`)
 2. **Vendor Generation**: Vendor generators extend base types with additional interfaces (e.g., `IMetaTypeEfCore`)
-3. **Coordination**: Vendor generators filter types using `DiscoveredType.WasDiscoveredByPrefix("EfCore.")`
+3. **DI Extension Generation**: Both core and vendor-specific DI extension methods are generated
+4. **Coordination**: Vendor generators filter types using `DiscoveredType.WasDiscoveredByPrefix("EfCore.")`
+
+### DI Extension Method Generation
+The generator now produces target-namespace-specific DI extension methods:
+
+#### Cross-Assembly Mode (`CrossAssembly: true`)
+- Generates one unified provider class in the target namespace (where generator runs)
+- Creates one DI method: `AddMetaTypes{TargetNamespace}()`
+- Example: `AddMetaTypesSampleConsole()` registers all types from Sample.Auth and Sample.Business
+
+#### Single-Project Mode (`CrossAssembly: false`)  
+- Generates separate provider classes per source assembly
+- Creates separate DI methods per assembly: `AddMetaTypes{AssemblyName}()`
+- Example: `AddMetaTypesSampleBusiness()` and `AddMetaTypesSampleAuth()`
+
+#### Vendor-Specific Extensions
+- Each vendor generates its own DI extension class
+- Method format: `AddMetaTypes{TargetNamespace}{VendorName}()`
+- Service retrieval: `Get{VendorName}MetaTypes()` methods
+- Example: `AddMetaTypesSampleConsoleEfCore()` and `serviceProvider.GetEfCoreMetaTypes()`
 
 ## Directory Structure
 ```

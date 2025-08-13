@@ -88,7 +88,7 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
         // Generate base MetaTypes if configured
         if (config.Generation.BaseMetaTypes)
         {
-            GenerateBaseMetaTypes(discoveredTypes, config, context);
+            GenerateBaseMetaTypes(discoveredTypes, config, context, compilation);
         }
         else
         {
@@ -109,30 +109,59 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
     private static void GenerateBaseMetaTypes(
         IList<DiscoveredType> discoveredTypes,
         BaseGeneratorOptions config,
-        SourceProductionContext context)
+        SourceProductionContext context,
+        Compilation compilation)
     {
-        // Group discovered types by their source assembly for proper namespace generation
-        var typesByAssembly = discoveredTypes.GroupBy(dt => dt.TypeSymbol.ContainingAssembly.Name).ToList();
-
-        foreach (var assemblyGroup in typesByAssembly)
+        if (config.Discovery.CrossAssembly)
         {
-            var assemblyName = assemblyGroup.Key;
-            var typesInAssembly = assemblyGroup.Select(dt => dt.TypeSymbol).ToList();
-
-            // Use MetaTypes' shared assembly name logic via AssemblyNameProvider
-            var targetNamespace = AssemblyNameProvider.Instance.GetTargetNamespace(assemblyName, config);
+            // Cross-assembly mode: Generate ONE unified provider in the target namespace (where generator runs)
+            var allTypeSymbols = discoveredTypes.Select(dt => dt.TypeSymbol).ToList();
+            var targetNamespace = AssemblyNameProvider.Instance.GetTargetNamespace(compilation, config); // Use compilation assembly as target
             
-            // Generate MetaTypes provider class for this assembly
-            var providerSource = CoreMetaTypeGenerator.GenerateMetaTypesProvider(targetNamespace, typesInAssembly);
-            context.AddSource($"{assemblyName}MetaTypes.g.cs", providerSource);
+            // Generate single unified MetaTypes provider with all discovered types
+            var providerSource = CoreMetaTypeGenerator.GenerateMetaTypesProvider(targetNamespace, allTypeSymbols);
+            context.AddSource($"{targetNamespace.Replace(".", "")}MetaTypes.g.cs", providerSource);
+            
+            // Generate single DI extension method for the target namespace
+            var diExtensionsSource = CoreMetaTypeGenerator.GenerateServiceCollectionExtensions(targetNamespace);
+            context.AddSource($"{targetNamespace.Replace(".", "")}MetaTypesServiceCollectionExtensions.g.cs", diExtensionsSource);
 
-            // Generate individual MetaType classes for this assembly
-            // Pass all discovered types for cross-reference detection
-            var allDiscoveredTypeSymbols = discoveredTypes.Select(dt => dt.TypeSymbol).ToList();
-            foreach (var typeSymbol in typesInAssembly)
+            // Generate individual MetaType classes in the target namespace
+            foreach (var typeSymbol in allTypeSymbols)
             {
-                var metaTypeSource = CoreMetaTypeGenerator.GenerateMetaTypeClass(typeSymbol, targetNamespace, allDiscoveredTypeSymbols);
-                context.AddSource($"{assemblyName}_{typeSymbol.Name}MetaType.g.cs", metaTypeSource);
+                var metaTypeSource = CoreMetaTypeGenerator.GenerateMetaTypeClass(typeSymbol, targetNamespace, allTypeSymbols, useCrossAssemblyReferences: true);
+                context.AddSource($"{targetNamespace.Replace(".", "")}_{typeSymbol.Name}MetaType.g.cs", metaTypeSource);
+            }
+        }
+        else
+        {
+            // Single-project mode: Group by source assembly and generate separate providers
+            var typesByAssembly = discoveredTypes.GroupBy(dt => dt.TypeSymbol.ContainingAssembly.Name).ToList();
+
+            foreach (var assemblyGroup in typesByAssembly)
+            {
+                var assemblyName = assemblyGroup.Key;
+                var typesInAssembly = assemblyGroup.Select(dt => dt.TypeSymbol).ToList();
+
+                // Use MetaTypes' shared assembly name logic via AssemblyNameProvider
+                var targetNamespace = AssemblyNameProvider.Instance.GetTargetNamespace(assemblyName, config);
+                
+                // Generate MetaTypes provider class for this assembly
+                var providerSource = CoreMetaTypeGenerator.GenerateMetaTypesProvider(targetNamespace, typesInAssembly);
+                context.AddSource($"{assemblyName}MetaTypes.g.cs", providerSource);
+                
+                // Generate DI extension methods for this assembly
+                var diExtensionsSource = CoreMetaTypeGenerator.GenerateServiceCollectionExtensions(targetNamespace);
+                context.AddSource($"{assemblyName}MetaTypesServiceCollectionExtensions.g.cs", diExtensionsSource);
+
+                // Generate individual MetaType classes for this assembly
+                // Pass all discovered types for cross-reference detection
+                var allDiscoveredTypeSymbols = discoveredTypes.Select(dt => dt.TypeSymbol).ToList();
+                foreach (var typeSymbol in typesInAssembly)
+                {
+                    var metaTypeSource = CoreMetaTypeGenerator.GenerateMetaTypeClass(typeSymbol, targetNamespace, allDiscoveredTypeSymbols, useCrossAssemblyReferences: false);
+                    context.AddSource($"{assemblyName}_{typeSymbol.Name}MetaType.g.cs", metaTypeSource);
+                }
             }
         }
     }
@@ -176,9 +205,12 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
                 vendorGenerator.Configure(vendorConfig);
                 
                 // Create context for vendor generator
+                // Use the compilation assembly name as the target namespace (where the generator runs)
+                var targetNamespace = AssemblyNameProvider.Instance.GetTargetNamespace(compilation, config);
                 var vendorContext = new GeneratorContext
                 {
                     EnableDiagnostics = config.EnableDiagnosticFiles,
+                    TargetNamespace = targetNamespace,
                     Properties = new Dictionary<string, string>
                     {
                         ["BaseMetaTypesGenerated"] = config.Generation.BaseMetaTypes.ToString()

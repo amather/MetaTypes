@@ -74,6 +74,14 @@ namespace MetaTypes.Generator.Common.Vendor.Statics.Generation
                 yield break;
             }
 
+            // Generate Statics DI extension methods for the target namespace
+            var diExtensionsSource = GenerateStaticsServiceCollectionExtensions(context.TargetNamespace);
+            yield return new GeneratedFile
+            {
+                FileName = $"StaticsServiceCollectionExtensions.g.cs",
+                Content = diExtensionsSource
+            };
+            
             // Generate Statics extensions for each discovered static class
             foreach (var staticClass in staticsTypes)
             {
@@ -166,7 +174,7 @@ namespace MetaTypes.Generator.Common.Vendor.Statics.Generation
             sb.AppendLine("    public IReadOnlyList<IStaticsParameterInfo> Parameters => [");
             foreach (var param in method.Parameters)
             {
-                sb.AppendLine($"        new {typeSymbol.Name}Method{method.Name}Parameter{ToPascalCase(param.Name)}(),");
+                sb.AppendLine($"        new {typeSymbol.Name}Method{method.Name}Parameter{NamingUtils.ToPascalCase(param.Name)}(),");
             }
             sb.AppendLine("    ];");
             
@@ -274,7 +282,7 @@ namespace MetaTypes.Generator.Common.Vendor.Statics.Generation
 
         private void GenerateParameterClass(StringBuilder sb, INamedTypeSymbol typeSymbol, IMethodSymbol method, IParameterSymbol parameter)
         {
-            sb.AppendLine($"public class {typeSymbol.Name}Method{method.Name}Parameter{ToPascalCase(parameter.Name)} : IStaticsParameterInfo");
+            sb.AppendLine($"public class {typeSymbol.Name}Method{method.Name}Parameter{NamingUtils.ToPascalCase(parameter.Name)} : IStaticsParameterInfo");
             sb.AppendLine("{");
             
             // Parameter name and type
@@ -293,7 +301,7 @@ namespace MetaTypes.Generator.Common.Vendor.Statics.Generation
             sb.AppendLine("    public IReadOnlyList<IStaticsAttributeInfo> ParameterAttributes => [");
             foreach (var attr in parameter.GetAttributes())
             {
-                sb.AppendLine($"        new {typeSymbol.Name}Method{method.Name}Parameter{ToPascalCase(parameter.Name)}Attribute{GetSimpleAttributeName(attr)}(),");
+                sb.AppendLine($"        new {typeSymbol.Name}Method{method.Name}Parameter{NamingUtils.ToPascalCase(parameter.Name)}Attribute{GetSimpleAttributeName(attr)}(),");
             }
             sb.AppendLine("    ];");
             
@@ -310,7 +318,7 @@ namespace MetaTypes.Generator.Common.Vendor.Statics.Generation
         private void GenerateParameterAttributeClass(StringBuilder sb, INamedTypeSymbol typeSymbol, IMethodSymbol method, IParameterSymbol parameter, AttributeData attribute)
         {
             var attrName = GetSimpleAttributeName(attribute);
-            sb.AppendLine($"public class {typeSymbol.Name}Method{method.Name}Parameter{ToPascalCase(parameter.Name)}Attribute{attrName} : IStaticsAttributeInfo");
+            sb.AppendLine($"public class {typeSymbol.Name}Method{method.Name}Parameter{NamingUtils.ToPascalCase(parameter.Name)}Attribute{attrName} : IStaticsAttributeInfo");
             sb.AppendLine("{");
             
             // Attribute type
@@ -327,7 +335,7 @@ namespace MetaTypes.Generator.Common.Vendor.Statics.Generation
             sb.AppendLine("    public IReadOnlyList<IStaticsAttributeArgument> ConstructorArguments => [");
             for (int i = 0; i < attribute.ConstructorArguments.Length; i++)
             {
-                sb.AppendLine($"        new {typeSymbol.Name}Method{method.Name}Parameter{ToPascalCase(parameter.Name)}Attribute{attrName}ConstructorArg{i}(),");
+                sb.AppendLine($"        new {typeSymbol.Name}Method{method.Name}Parameter{NamingUtils.ToPascalCase(parameter.Name)}Attribute{attrName}ConstructorArg{i}(),");
             }
             sb.AppendLine("    ];");
             
@@ -336,7 +344,7 @@ namespace MetaTypes.Generator.Common.Vendor.Statics.Generation
             sb.AppendLine("    public IReadOnlyList<IStaticsAttributeNamedArgument> NamedArguments => [");
             foreach (var namedArg in attribute.NamedArguments)
             {
-                sb.AppendLine($"        new {typeSymbol.Name}Method{method.Name}Parameter{ToPascalCase(parameter.Name)}Attribute{attrName}NamedArg{namedArg.Key}(),");
+                sb.AppendLine($"        new {typeSymbol.Name}Method{method.Name}Parameter{NamingUtils.ToPascalCase(parameter.Name)}Attribute{attrName}NamedArg{namedArg.Key}(),");
             }
             sb.AppendLine("    ];");
             
@@ -347,7 +355,7 @@ namespace MetaTypes.Generator.Common.Vendor.Statics.Generation
             for (int i = 0; i < attribute.ConstructorArguments.Length; i++)
             {
                 var arg = attribute.ConstructorArguments[i];
-                sb.AppendLine($"public class {typeSymbol.Name}Method{method.Name}Parameter{ToPascalCase(parameter.Name)}Attribute{attrName}ConstructorArg{i} : IStaticsAttributeArgument");
+                sb.AppendLine($"public class {typeSymbol.Name}Method{method.Name}Parameter{NamingUtils.ToPascalCase(parameter.Name)}Attribute{attrName}ConstructorArg{i} : IStaticsAttributeArgument");
                 sb.AppendLine("{");
                 var argTypeString = arg.Type?.ToDisplayString();
                 if (argTypeString != null && argTypeString.EndsWith("?") && arg.Type != null && !arg.Type.IsValueType)
@@ -368,7 +376,7 @@ namespace MetaTypes.Generator.Common.Vendor.Statics.Generation
             // Generate named argument classes
             foreach (var namedArg in attribute.NamedArguments)
             {
-                sb.AppendLine($"public class {typeSymbol.Name}Method{method.Name}Parameter{ToPascalCase(parameter.Name)}Attribute{attrName}NamedArg{namedArg.Key} : IStaticsAttributeNamedArgument");
+                sb.AppendLine($"public class {typeSymbol.Name}Method{method.Name}Parameter{NamingUtils.ToPascalCase(parameter.Name)}Attribute{attrName}NamedArg{namedArg.Key} : IStaticsAttributeNamedArgument");
                 sb.AppendLine("{");
                 sb.AppendLine($"    public string Name => \"{namedArg.Key}\";");
                 var argTypeString = namedArg.Value.Type?.ToDisplayString();
@@ -413,13 +421,6 @@ namespace MetaTypes.Generator.Common.Vendor.Statics.Generation
             return fullName.EndsWith("Attribute") ? fullName.Substring(0, fullName.Length - 9) : fullName;
         }
 
-        private static string ToPascalCase(string input)
-        {
-            if (string.IsNullOrEmpty(input))
-                return input;
-            
-            return char.ToUpperInvariant(input[0]) + input.Substring(1);
-        }
 
         private static string FormatAttributeValue(object? value)
         {
@@ -522,6 +523,96 @@ namespace MetaTypes.Generator.Common.Vendor.Statics.Generation
             
             // Default to string representation
             return $"\"{value}\"";
+        }
+
+        /// <summary>
+        /// Generates Statics-specific DI extension methods for the target namespace.
+        /// </summary>
+        private string GenerateStaticsServiceCollectionExtensions(string targetNamespace)
+        {
+            var sb = new StringBuilder();
+            
+            sb.AppendLine("#nullable enable");
+            sb.AppendLine("using System;");
+            sb.AppendLine("using System.Collections.Generic;");
+            sb.AppendLine("using System.Linq;");
+            sb.AppendLine("using Microsoft.Extensions.DependencyInjection;");
+            sb.AppendLine("using MetaTypes.Abstractions;");
+            sb.AppendLine("using MetaTypes.Abstractions.Vendor.Statics;");
+            sb.AppendLine();
+            sb.AppendLine($"namespace {targetNamespace};");
+            sb.AppendLine();
+            sb.AppendLine("/// <summary>");
+            sb.AppendLine($"/// Statics vendor DI extension methods for MetaTypes generated in {targetNamespace} namespace.");
+            sb.AppendLine("/// </summary>");
+            sb.AppendLine("public static class StaticsServiceCollectionExtensions");
+            sb.AppendLine("{");
+            
+            // Generate the Statics-specific AddMetaTypes method
+            var methodName = NamingUtils.ToAddVendorMetaTypesMethodName(targetNamespace, "Statics");
+            sb.AppendLine("    /// <summary>");
+            sb.AppendLine($"    /// Registers Statics-specific MetaTypes from the {targetNamespace} namespace.");
+            sb.AppendLine($"    /// This registers IMetaTypeStatics interfaces for all static service classes.");
+            sb.AppendLine("    /// </summary>");
+            sb.AppendLine($"    public static IServiceCollection {methodName}(this IServiceCollection services)");
+            sb.AppendLine("    {");
+            sb.AppendLine($"        // First register the base MetaTypes");
+            sb.AppendLine($"        services.{NamingUtils.ToAddMetaTypesMethodName(targetNamespace)}();");
+            sb.AppendLine();
+            sb.AppendLine("        // Register Statics-specific interfaces");
+            sb.AppendLine($"        foreach (var metaType in {targetNamespace}.MetaTypes.Instance.AssemblyMetaTypes)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            if (metaType is IMetaTypeStatics staticsType)");
+            sb.AppendLine("            {");
+            sb.AppendLine("                services.AddSingleton<IMetaTypeStatics>(staticsType);");
+            sb.AppendLine("            }");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+            sb.AppendLine("        return services;");
+            sb.AppendLine("    }");
+            
+            sb.AppendLine("}");
+            sb.AppendLine();
+            sb.AppendLine("/// <summary>");
+            sb.AppendLine("/// Statics vendor service provider extension methods for retrieving registered MetaTypes.");
+            sb.AppendLine("/// </summary>");
+            sb.AppendLine("public static class StaticsServiceProviderExtensions");
+            sb.AppendLine("{");
+            
+            // Add GetStaticsMetaTypes method
+            sb.AppendLine("    /// <summary>");
+            sb.AppendLine("    /// Gets all registered Statics MetaTypes from the service provider.");
+            sb.AppendLine("    /// </summary>");
+            sb.AppendLine("    public static IEnumerable<IMetaTypeStatics> GetStaticsMetaTypes(this IServiceProvider serviceProvider)");
+            sb.AppendLine("    {");
+            sb.AppendLine("        return serviceProvider.GetServices<IMetaTypeStatics>();");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+            
+            // Add generic GetStaticsMetaType method
+            sb.AppendLine("    /// <summary>");
+            sb.AppendLine("    /// Gets a specific Statics MetaType by static service class type.");
+            sb.AppendLine("    /// </summary>");
+            sb.AppendLine("    public static IMetaTypeStatics? GetStaticsMetaType<T>(this IServiceProvider serviceProvider)");
+            sb.AppendLine("    {");
+            sb.AppendLine("        return serviceProvider.GetServices<IMetaTypeStatics>()");
+            sb.AppendLine("            .FirstOrDefault(mt => mt.ManagedType == typeof(T));");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+            
+            // Add non-generic GetStaticsMetaType method
+            sb.AppendLine("    /// <summary>");
+            sb.AppendLine("    /// Gets a specific Statics MetaType by static service class type.");
+            sb.AppendLine("    /// </summary>");
+            sb.AppendLine("    public static IMetaTypeStatics? GetStaticsMetaType(this IServiceProvider serviceProvider, Type serviceType)");
+            sb.AppendLine("    {");
+            sb.AppendLine("        return serviceProvider.GetServices<IMetaTypeStatics>()");
+            sb.AppendLine("            .FirstOrDefault(mt => mt.ManagedType == serviceType);");
+            sb.AppendLine("    }");
+            
+            sb.AppendLine("}");
+            
+            return sb.ToString();
         }
     }
     
