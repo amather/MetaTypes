@@ -11,7 +11,7 @@ Further development will be done in private repo, this is only a showcase of wha
 - full human code review, including AI instructions to block manipulation of certain files or methods (AI freeze)
 - clear documentation and approach for vendors to add to this source generator
 
-Until then, input is welcomed, but consider this repo as a proof of concept, not more.
+Until then, input is welcomed, but consider this repo as a proof of concept, nothing more.
 
 (amather, Aug 13th 2025)
 
