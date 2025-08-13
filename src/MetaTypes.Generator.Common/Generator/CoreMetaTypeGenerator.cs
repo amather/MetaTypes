@@ -55,7 +55,11 @@ public static class CoreMetaTypeGenerator
         sb.AppendLine();
         sb.AppendLine($"namespace {assemblyNamespace};");
         sb.AppendLine();
-        sb.AppendLine($"public partial class {typeSymbol.Name}MetaType : IMetaType, IMetaType<{typeSymbol.ToDisplayString()}>");
+        // Static types cannot be used as type arguments, so only implement the generic interface for non-static types
+        var interfaceDeclaration = typeSymbol.IsStatic 
+            ? $"public partial class {typeSymbol.Name}MetaType : IMetaType"
+            : $"public partial class {typeSymbol.Name}MetaType : IMetaType, IMetaType<{typeSymbol.ToDisplayString()}>";
+        sb.AppendLine(interfaceDeclaration);
         sb.AppendLine("{");
         sb.AppendLine($"    private static {typeSymbol.Name}MetaType? _instance;");
         sb.AppendLine($"    public static {typeSymbol.Name}MetaType Instance => _instance ??= new();");
@@ -128,20 +132,24 @@ public static class CoreMetaTypeGenerator
         sb.AppendLine("    {");
         sb.AppendLine($"        return FindMember(name) ?? throw new InvalidOperationException($\"Member '{{name}}' not found on type '{typeSymbol.ToDisplayString()}'\");");
         sb.AppendLine("    }");
-        sb.AppendLine();
-        sb.AppendLine($"    public IMetaTypeMember? FindMember<TProperty>(Expression<Func<{typeSymbol.ToDisplayString()}, TProperty>> expression)");
-        sb.AppendLine("    {");
-        sb.AppendLine("        if (expression.Body is MemberExpression memberExpr)");
-        sb.AppendLine("        {");
-        sb.AppendLine("            return FindMember(memberExpr.Member.Name);");
-        sb.AppendLine("        }");
-        sb.AppendLine("        throw new ArgumentException(\"Expression must be a member access\", nameof(expression));");
-        sb.AppendLine("    }");
-        sb.AppendLine();
-        sb.AppendLine($"    public IMetaTypeMember FindRequiredMember<TProperty>(Expression<Func<{typeSymbol.ToDisplayString()}, TProperty>> expression)");
-        sb.AppendLine("    {");
-        sb.AppendLine("        return FindMember(expression) ?? throw new InvalidOperationException($\"Member not found for expression\");");
-        sb.AppendLine("    }");
+        // Only generate generic expression-based methods for non-static types
+        if (!typeSymbol.IsStatic)
+        {
+            sb.AppendLine();
+            sb.AppendLine($"    public IMetaTypeMember? FindMember<TProperty>(Expression<Func<{typeSymbol.ToDisplayString()}, TProperty>> expression)");
+            sb.AppendLine("    {");
+            sb.AppendLine("        if (expression.Body is MemberExpression memberExpr)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            return FindMember(memberExpr.Member.Name);");
+            sb.AppendLine("        }");
+            sb.AppendLine("        throw new ArgumentException(\"Expression must be a member access\", nameof(expression));");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+            sb.AppendLine($"    public IMetaTypeMember FindRequiredMember<TProperty>(Expression<Func<{typeSymbol.ToDisplayString()}, TProperty>> expression)");
+            sb.AppendLine("    {");
+            sb.AppendLine("        return FindMember(expression) ?? throw new InvalidOperationException($\"Member not found for expression\");");
+            sb.AppendLine("    }");
+        }
         sb.AppendLine("}");
 
         // Generate member classes

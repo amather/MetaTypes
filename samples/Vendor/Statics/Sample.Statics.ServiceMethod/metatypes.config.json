@@ -1,0 +1,24 @@
+{
+  "MetaTypes.Generator": {
+    "EnableDiagnosticFiles": true,
+    "Generation": {
+      "BaseMetaTypes": true
+    },
+    "Discovery": {
+      "Syntax": true,
+      "CrossAssembly": false,
+      "Methods": [
+        "MetaTypes.Attribute",
+        "Statics.ServiceMethod"
+      ]
+    },
+    "EnabledVendors": ["Statics"],
+    "VendorConfigs": {
+      "Statics": {
+        "RequireBaseTypes": true,
+        "IncludeParameterAttributes": true,
+        "IncludeMethodAttributes": true
+      }
+    }
+  }
+}
