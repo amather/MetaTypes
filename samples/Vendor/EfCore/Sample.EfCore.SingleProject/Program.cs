@@ -43,6 +43,32 @@ using (var scope = host.Services.CreateScope())
         Console.WriteLine($"    Keys: {string.Join(", ", efCoreType.Keys.Select(k => ((global::MetaTypes.Abstractions.IMetaTypeMember)k).MemberName))}");
     }
     
+    // NEW: Demonstrate DbContext collection retrieval
+    Console.WriteLine("\n=== DbContext Collection Demo ===");
+    var efCoreDbContexts = serviceProvider.GetEfCoreDbContexts().ToList();
+    
+    Console.WriteLine($"✅ Retrieved {efCoreDbContexts.Count} EfCore DbContext(s):");
+    foreach (var dbContextMeta in efCoreDbContexts)
+    {
+        Console.WriteLine($"  - DbContext: {dbContextMeta.ContextName} ({dbContextMeta.ContextType.Name})");
+        var entityTypes = dbContextMeta.EntityTypes.ToList();
+        Console.WriteLine($"    Entity Types ({entityTypes.Count}):");
+        foreach (var entityType in entityTypes)
+        {
+            Console.WriteLine($"      • {((global::MetaTypes.Abstractions.IMetaType)entityType).ManagedTypeName}");
+            Console.WriteLine($"        Table: {entityType.TableName}");
+            Console.WriteLine($"        Keys: {string.Join(", ", entityType.Keys.Select(k => ((global::MetaTypes.Abstractions.IMetaTypeMember)k).MemberName))}");
+        }
+    }
+    
+    // NEW: Demonstrate specific DbContext retrieval
+    var specificDbContext = serviceProvider.GetEfCoreDbContext<SingleProjectDbContext>();
+    if (specificDbContext != null)
+    {
+        Console.WriteLine($"\n✅ Retrieved specific DbContext: {specificDbContext.ContextName}");
+        Console.WriteLine($"   Contains {specificDbContext.EntityTypes.Count()} entity types");
+    }
+    
     // Demonstrate specific EfCore MetaType retrieval
     var localEntityMetaType = serviceProvider.GetEfCoreMetaType<Sample.EfCore.SingleProject.Models.LocalEntity>();
     if (localEntityMetaType != null)
@@ -54,6 +80,8 @@ using (var scope = host.Services.CreateScope())
     
     Console.WriteLine("\n✅ Database created successfully");
     Console.WriteLine("✅ EfCore vendor DI extensions working correctly");
+    Console.WriteLine("✅ DbContext collection features implemented");
     Console.WriteLine("✅ Check Generated folder for new DI extension files");
     Console.WriteLine("   - Look for: EfCoreServiceCollectionExtensions.g.cs");
+    Console.WriteLine("   - Look for: SingleProjectDbContextMetaTypesEfCoreDbContext.g.cs");
 }

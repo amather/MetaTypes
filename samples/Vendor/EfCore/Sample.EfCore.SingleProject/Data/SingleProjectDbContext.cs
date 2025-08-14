@@ -10,6 +10,7 @@ public class SingleProjectDbContext : DbContext
     }
 
     public DbSet<LocalEntity> LocalEntities { get; set; }
+    public DbSet<TestEntity> TestEntities { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -22,6 +23,13 @@ public class SingleProjectDbContext : DbContext
             entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Description).HasMaxLength(500);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+        });
+        
+        // Configure TestEntity
+        modelBuilder.Entity<TestEntity>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
         });
     }
 }

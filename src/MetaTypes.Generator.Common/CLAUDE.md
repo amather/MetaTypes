@@ -65,7 +65,8 @@ The generator now produces target-namespace-specific DI extension methods:
 #### Vendor-Specific Extensions
 - Each vendor generates its own DI extension class
 - Method format: `AddMetaTypes{TargetNamespace}{VendorName}()`
-- Service retrieval: `Get{VendorName}MetaTypes()` methods
+- Service retrieval: `Get{VendorName}MetaTypes()` methods for individual entities
+- **NEW**: DbContext collections: `GetEfCoreDbContexts()`, `GetEfCoreDbContext<T>()` methods
 - Example: `AddMetaTypesSampleConsoleEfCore()` and `serviceProvider.GetEfCoreMetaTypes()`
 
 ## Directory Structure
@@ -134,7 +135,7 @@ public void Configure(JsonElement? config)
 ```
 
 ### Available Vendors
-- **EfCore Vendor**: Generates Entity Framework Core extensions with table names, keys, and relationships
+- **EfCore Vendor**: Generates Entity Framework Core extensions with table names, keys, relationships, and **NEW: DbContext collections**
 
 ### Discovery Methods by Vendor
 - **Core Methods**:
@@ -148,7 +149,45 @@ public void Configure(JsonElement? config)
 For a type discovered by EfCore methods:
 - **Base File**: `TestEntityMetaType.g.cs` (implements `IMetaType<TestEntity>`) - requires `BaseMetaTypes: true`
 - **EfCore Extension**: `TestEntityEfCoreMetaType.g.cs` (partial class implementing `IMetaTypeEfCore`)
+- **NEW: DbContext Collections**: `{ContextName}MetaTypesEfCoreDbContext.g.cs` (implements `IMetaTypesEfCoreDbContext`)
+
+### NEW: EfCore DbContext Collection Features
+
+The EfCore vendor now generates DbContext collections that organize entity types by their originating DbContext:
+
+#### Generated DbContext Classes
+```csharp
+public class CustomerDbContextMetaTypesEfCoreDbContext : IMetaTypesEfCoreDbContext
+{
+    public string ContextName => "CustomerDbContext";
+    public Type ContextType => typeof(CustomerDbContext);
+    public IEnumerable<IMetaTypeEfCore> EntityTypes => /* filtered entities */;
+}
+```
+
+#### Entity Grouping Strategy
+- **DbContext Scanning Discovery** (`EfCore.DbContextSet`): Groups entities by their actual DbContext class name
+- **Table Attribute Discovery** (`EfCore.TableAttribute`): Groups entities in "UnknownContext" since they could belong to multiple DbContexts
+- **Enhanced Discovery Context**: Stores `DbContextName` and `DbContextType` in `DiscoveredType.DiscoveryContexts`
+
+#### DI Registration
+```csharp
+// Enhanced service registration
+services.AddSingleton<IMetaTypesEfCoreDbContext>(new CustomerDbContextMetaTypesEfCoreDbContext());
+services.AddSingleton<IMetaTypesEfCoreDbContext>(new UnknownContextMetaTypesEfCoreDbContext());
+```
+
+#### Service Provider Extensions
+```csharp
+// Get all DbContext collections
+public static IEnumerable<IMetaTypesEfCoreDbContext> GetEfCoreDbContexts(this IServiceProvider)
+
+// Get specific DbContext metadata
+public static IMetaTypesEfCoreDbContext? GetEfCoreDbContext<TDbContext>(this IServiceProvider)
+public static IMetaTypesEfCoreDbContext? GetEfCoreDbContext(this IServiceProvider, Type dbContextType)
+```
 
 ### Vendor Dependencies
 - **EfCore Vendor**: Requires base MetaTypes by default (`RequireBaseTypes: true`) since extensions are partial classes
 - **Independent Generation**: Vendor generation runs separately from base generation but may depend on base types existing
+- **DbContext Collection Support**: Works with both `CrossAssembly: true/false` configurations

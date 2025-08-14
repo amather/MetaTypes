@@ -78,6 +78,7 @@ builder.Services.AddMetaTypesMyAppEfCore(); // Generated method
 4. **Access Entity Framework metadata**:
 
 ```csharp
+// Access individual entity metadata
 var efCoreTypes = serviceProvider.GetEfCoreMetaTypes();
 foreach (var entityType in efCoreTypes)
 {
@@ -85,6 +86,26 @@ foreach (var entityType in efCoreTypes)
     
     var keys = entityType.Keys;
     Console.WriteLine($"Primary keys: {string.Join(", ", keys.Select(k => ((IMetaTypeMember)k).MemberName))}");
+}
+
+// NEW: Access entities organized by DbContext
+var dbContexts = serviceProvider.GetEfCoreDbContexts();
+foreach (var dbContext in dbContexts)
+{
+    Console.WriteLine($"DbContext: {dbContext.ContextName}");
+    foreach (var entityType in dbContext.EntityTypes)
+    {
+        Console.WriteLine($"  - Entity: {((IMetaType)entityType).ManagedTypeName}");
+        Console.WriteLine($"    Table: {entityType.TableName}");
+    }
+}
+
+// Access specific DbContext metadata
+var customerContext = serviceProvider.GetEfCoreDbContext<CustomerDbContext>();
+if (customerContext != null)
+{
+    Console.WriteLine($"Found context: {customerContext.ContextName}");
+    Console.WriteLine($"Entity count: {customerContext.EntityTypes.Count()}");
 }
 ```
 

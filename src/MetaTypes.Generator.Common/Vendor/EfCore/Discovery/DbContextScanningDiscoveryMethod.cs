@@ -133,7 +133,11 @@ public class DbContextScanningDiscoveryMethod : IDiscoveryMethod
                         TypeSymbol = entityType,
                         Source = DiscoverySource.Referenced, // DbContext scanning is considered referenced
                         DiscoveredBy = new[] { Identifier },
-                        DiscoveryContexts = { [Identifier] = $"DbSet property in {dbContextType.Name}" }
+                        DiscoveryContexts = { 
+                            [Identifier] = $"DbSet<{entityType.Name}> in {dbContextType.Name}",
+                            ["DbContextType"] = dbContextType.ToDisplayString(),
+                            ["DbContextName"] = dbContextType.Name
+                        }
                     });
                 }
             }

@@ -19,6 +19,31 @@ cd samples/Sample.Console
 dotnet run
 ```
 
+## Vendor Samples
+
+### Entity Framework Core Vendor
+📂 **[EfCore Vendor Documentation](./samples/Vendor/EfCore/CLAUDE.md)**
+
+Features:
+- Table metadata (names, keys, foreign keys)
+- **NEW**: DbContext collections for organized entity access
+- Cross-assembly entity discovery
+- DI integration with service provider extensions
+
+Samples:
+- `samples/Vendor/EfCore/Sample.EfCore.SingleProject/` - Single project showcase
+- `samples/Vendor/EfCore/Sample.EfCore.MultiProject/` - Multi-project scenario
+
+### Statics Vendor  
+📂 **[Statics Vendor Documentation](./samples/Vendor/Statics/CLAUDE.md)**
+
+Features (planned):
+- Static method discovery across assemblies
+- Service pattern metadata generation
+- DI integration for static method collections
+
+Status: 🚧 In development
+
 ## Project Structure
 
 ### Core Components
@@ -80,9 +105,13 @@ services.AddMetaTypesSampleConsoleEfCore();
 // Statics vendor extensions  
 services.AddMetaTypesSampleConsoleStatics();
 
-// Service retrieval
+// Service retrieval - Individual entity types
 var efCoreTypes = serviceProvider.GetEfCoreMetaTypes();
 var staticsTypes = serviceProvider.GetStaticsMetaTypes();
+
+// NEW: Service retrieval - DbContext collections
+var dbContexts = serviceProvider.GetEfCoreDbContexts();
+var specificContext = serviceProvider.GetEfCoreDbContext<MyDbContext>();
 ```
 
 ## Configuration

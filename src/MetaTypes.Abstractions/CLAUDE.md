@@ -10,6 +10,7 @@ This project contains the core abstractions, interfaces, and attributes for the 
 - **IMetaTypeMember** - Represents a member (property/field) of a meta type
 - **IMetaTypeEfCore** - Entity Framework Core specific extensions to IMetaType
 - **IMetaTypeMemberEfCore** - EF Core specific extensions to IMetaTypeMember
+- **IMetaTypesEfCoreDbContext** - NEW: Represents a DbContext and its associated entity types (EfCore vendor)
 - **IMetaTypeProvider** - Provider interface for retrieving meta types
 
 ### Configuration Interfaces

@@ -6,7 +6,7 @@
     },
     "Discovery": {
       "Syntax": true,
-      "CrossAssembly": false,
+      "CrossAssembly": true,
       "Methods": [
         "EfCore.TableAttribute",
         "EfCore.DbContextSet"
