@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Sample.Statics.ServiceMethod.Attributes;
+using Sample.Statics.ServiceMethod.Models;
 using Statics.ServiceBroker.Attributes;
 
 namespace Sample.Statics.ServiceMethod.Services;
@@ -10,13 +11,12 @@ namespace Sample.Statics.ServiceMethod.Services;
 /// <summary>
 /// Static service class containing user management methods
 /// </summary>
-[MetaType]
 public static class UserServices
 {
-    [StaticsServiceMethod(Path = "/users/{userId:int}", Policy = ServicePolicyType.Anonymous)]
-    public static string GetUserById(int userId)
+    [StaticsServiceMethod(Path = "/users/{id:int}", Entity = typeof(User), Policy = ServicePolicyType.Anonymous)]
+    public static string GetUserById(int id)
     {
-        return $"User {userId}";
+        return $"User {id}";
     }
 
     [StaticsServiceMethod(Path = "/users", EntityGlobal = true, ResponseType = typeof(bool))]
@@ -26,22 +26,22 @@ public static class UserServices
         return !string.IsNullOrEmpty(userName) && !string.IsNullOrEmpty(email);
     }
 
-    [StaticsServiceMethod(Path = "/users/{userId:int}/status", Entity = typeof(UserServices))]
-    public static void UpdateUserStatus(int userId, bool isActive, string? reason = null)
+    [StaticsServiceMethod(Path = "/users/{id:int}/status", Entity = typeof(User))]
+    public static void UpdateUserStatus(int id, bool isActive, string? reason = null)
     {
         // Simulate status update
     }
 
-    [StaticsServiceMethod(Path = "/users/{userId:int}/detailed", ResponseType = typeof(string), Policy = ServicePolicyType.Restricted)]
+    [StaticsServiceMethod(Path = "/users/{id:int}/detailed", Entity = typeof(User), ResponseType = typeof(string), Policy = ServicePolicyType.Restricted)]
     public static async Task<string> GetUserWithLoggingAsync(
-        int userId, 
+        int id, 
         [FromServices] ILogger logger,
         [FromServices] IServiceProvider serviceProvider,
         CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Getting user {UserId}", userId);
+        logger.LogInformation("Getting user {UserId}", id);
         await Task.Delay(100, cancellationToken);
-        return $"User {userId} (logged)";
+        return $"User {id} (logged)";
     }
 
     [StaticsServiceMethod(Path = "/users/validate", EntityGlobal = true, ResponseType = typeof(bool), Policy = ServicePolicyType.Anonymous)] 

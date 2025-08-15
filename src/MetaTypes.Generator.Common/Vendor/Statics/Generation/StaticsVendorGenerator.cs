@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using MetaTypes.Generator.Common.Generator;
 
@@ -72,6 +73,21 @@ namespace MetaTypes.Generator.Common.Vendor.Statics.Generation
             if (!staticsTypes.Any())
             {
                 yield break;
+            }
+
+            // Validate StaticsServiceMethodAttribute usage and generate diagnostics
+            if (context.EnableDiagnostics)
+            {
+                var validationResults = ValidateStaticsServiceMethods(staticsTypes);
+                if (validationResults.Any())
+                {
+                    var diagnosticsContent = GenerateValidationDiagnostics(validationResults);
+                    yield return new GeneratedFile
+                    {
+                        FileName = "_StaticsValidationDiagnostic.g.cs",
+                        Content = diagnosticsContent
+                    };
+                }
             }
 
             // Generate Statics DI extension methods for the target namespace
@@ -653,6 +669,228 @@ namespace MetaTypes.Generator.Common.Vendor.Statics.Generation
             sb.AppendLine();
             sb.AppendLine("#endregion");
         }
+
+        /// <summary>
+        /// Validates StaticsServiceMethodAttribute usage across all static service classes
+        /// </summary>
+        private List<ValidationResult> ValidateStaticsServiceMethods(IList<INamedTypeSymbol> staticTypes)
+        {
+            var results = new List<ValidationResult>();
+
+            foreach (var staticClass in staticTypes)
+            {
+                var serviceMethods = GetStaticServiceMethods(staticClass);
+                foreach (var method in serviceMethods)
+                {
+                    var attribute = method.GetAttributes()
+                        .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "Statics.ServiceBroker.Attributes.StaticsServiceMethodAttribute");
+                    
+                    if (attribute != null)
+                    {
+                        var validationResult = ValidateStaticsServiceMethodAttribute(staticClass, method, attribute);
+                        if (validationResult.HasErrors)
+                        {
+                            results.Add(validationResult);
+                        }
+                    }
+                }
+            }
+
+            return results;
+        }
+
+        /// <summary>
+        /// Validates a single StaticsServiceMethodAttribute usage
+        /// </summary>
+        private ValidationResult ValidateStaticsServiceMethodAttribute(INamedTypeSymbol staticClass, IMethodSymbol method, AttributeData attribute)
+        {
+            var result = new ValidationResult
+            {
+                ClassName = staticClass.Name,
+                MethodName = method.Name,
+                Errors = new List<string>()
+            };
+
+            // Extract attribute properties
+            var pathArg = GetAttributeArgumentValue(attribute, "Path")?.ToString();
+            var entityArg = GetAttributeArgumentValue(attribute, "Entity") as ITypeSymbol;
+            var entityGlobalArg = GetAttributeArgumentValue(attribute, "EntityGlobal");
+            
+            bool hasEntity = entityArg != null;
+            bool entityGlobal = entityGlobalArg is bool b && b;
+
+            if (string.IsNullOrEmpty(pathArg))
+            {
+                result.Errors.Add("Path argument is required");
+                return result;
+            }
+
+            // Handle null path argument
+            if (pathArg == null)
+            {
+                result.Errors.Add("Path argument cannot be null");
+                return result;
+            }
+
+            // Parse route parameters from path (e.g., {id}, {id:int}, {enabled:bool})
+            var routeParams = ParseRouteParameters(pathArg);
+            var methodParams = new HashSet<string>(method.Parameters.Select(p => p.Name));
+
+            // Rule 1: If path contains route parameters, all must exist as method parameters
+            foreach (var routeParam in routeParams)
+            {
+                if (!methodParams.Contains(routeParam.Name))
+                {
+                    result.Errors.Add($"Route parameter '{routeParam.Name}' from path '{pathArg}' must exist as a method parameter");
+                }
+            }
+
+            // Rule 2: If method has Entity parameter and uses 'id' parameter, EntityGlobal should be false or unspecified
+            var hasIdParameter = routeParams.Any(p => p.Name == "id") || methodParams.Contains("id");
+            if (hasEntity && hasIdParameter && entityGlobal)
+            {
+                result.Errors.Add("Methods with Entity parameter and 'id' parameter should not have EntityGlobal = true");
+            }
+
+            // Rule 3: If method has 'id' parameter, it should have Entity parameter
+            if (hasIdParameter && !hasEntity)
+            {
+                result.Errors.Add("Methods with 'id' parameter must specify Entity parameter");
+            }
+
+            // Rule 4: If EntityGlobal is true, method should not have 'id' parameter
+            if (entityGlobal && hasIdParameter)
+            {
+                result.Errors.Add("Methods with EntityGlobal = true should not have 'id' parameter");
+            }
+
+            // Rule 5: Validate route parameter type constraints match method parameter types
+            foreach (var routeParam in routeParams.Where(p => !string.IsNullOrEmpty(p.TypeConstraint)))
+            {
+                var methodParam = method.Parameters.FirstOrDefault(p => p.Name == routeParam.Name);
+                if (methodParam != null)
+                {
+                    if (!IsTypeConstraintCompatible(routeParam.TypeConstraint!, methodParam.Type))
+                    {
+                        result.Errors.Add($"Route parameter '{routeParam.Name}:{routeParam.TypeConstraint}' type constraint does not match method parameter type '{methodParam.Type.ToDisplayString()}'");
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Parses route parameters from a path string (e.g., "/users/{id:int}/status/{enabled:bool}")
+        /// </summary>
+        private List<RouteParameter> ParseRouteParameters(string path)
+        {
+            var results = new List<RouteParameter>();
+            var regex = new Regex(@"\{([^}:]+)(?::([^}]+))?\}");
+            var matches = regex.Matches(path);
+
+            foreach (Match match in matches)
+            {
+                var name = match.Groups[1].Value;
+                var typeConstraint = match.Groups[2].Success ? match.Groups[2].Value : null;
+                results.Add(new RouteParameter { Name = name, TypeConstraint = typeConstraint });
+            }
+
+            return results;
+        }
+
+        /// <summary>
+        /// Checks if a route type constraint is compatible with a method parameter type
+        /// </summary>
+        private bool IsTypeConstraintCompatible(string typeConstraint, ITypeSymbol parameterType)
+        {
+            var paramTypeName = parameterType.SpecialType switch
+            {
+                SpecialType.System_Int32 => "int",
+                SpecialType.System_Int64 => "long",
+                SpecialType.System_Boolean => "bool",
+                SpecialType.System_Double => "double",
+                SpecialType.System_Single => "float",
+                SpecialType.System_Decimal => "decimal",
+                SpecialType.System_String => "string",
+                _ => parameterType.Name.ToLowerInvariant()
+            };
+
+            return typeConstraint.ToLowerInvariant() == paramTypeName;
+        }
+
+        /// <summary>
+        /// Gets an attribute argument value by name
+        /// </summary>
+        private object? GetAttributeArgumentValue(AttributeData attribute, string argumentName)
+        {
+            // Check named arguments first
+            var namedArg = attribute.NamedArguments.FirstOrDefault(kvp => kvp.Key == argumentName);
+            if (!namedArg.Equals(default(KeyValuePair<string, TypedConstant>)))
+            {
+                return namedArg.Value.Value;
+            }
+
+            // For constructor arguments, we need to map by position or known parameter names
+            // This is simplified - in real implementation you'd need to check the constructor signature
+            if (argumentName == "Path" && attribute.ConstructorArguments.Length > 0)
+            {
+                return attribute.ConstructorArguments[0].Value;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Generates diagnostic file content for validation results
+        /// </summary>
+        private string GenerateValidationDiagnostics(List<ValidationResult> results)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("// StaticsServiceMethodAttribute Validation Diagnostics");
+            sb.AppendLine($"// Generated at: {DateTime.Now}");
+            sb.AppendLine($"// Total violations found: {results.Count}");
+            sb.AppendLine();
+
+            foreach (var result in results)
+            {
+                sb.AppendLine($"// ERROR in {result.ClassName}.{result.MethodName}:");
+                foreach (var error in result.Errors)
+                {
+                    sb.AppendLine($"//   - {error}");
+                }
+                sb.AppendLine();
+            }
+
+            sb.AppendLine("// Validation Rules:");
+            sb.AppendLine("//   1. All route parameters in Path must exist as method parameters");
+            sb.AppendLine("//   2. Methods with 'id' parameter must specify Entity parameter");
+            sb.AppendLine("//   3. Methods with Entity + 'id' should not have EntityGlobal = true");
+            sb.AppendLine("//   4. Methods with EntityGlobal = true should not have 'id' parameter");
+            sb.AppendLine("//   5. Route parameter type constraints must match method parameter types");
+
+            return sb.ToString();
+        }
+    }
+    
+    /// <summary>
+    /// Represents a route parameter parsed from a path
+    /// </summary>
+    public class RouteParameter
+    {
+        public string Name { get; set; } = "";
+        public string? TypeConstraint { get; set; }
+    }
+
+    /// <summary>
+    /// Represents validation results for a method
+    /// </summary>
+    public class ValidationResult
+    {
+        public string ClassName { get; set; } = "";
+        public string MethodName { get; set; } = "";
+        public List<string> Errors { get; set; } = new();
+        public bool HasErrors => Errors.Any();
     }
     
     /// <summary>
