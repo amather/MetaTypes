@@ -111,6 +111,336 @@ namespace MetaTypes.Generator.Common.Vendor.Statics.Generation
                 };
                 isFirstFile = false; // Only include shared classes in the first file
             }
+
+            // Generate repository classes for entity types
+            var repositorySpecs = AnalyzeRepositoryRequirements(discoveredTypes, staticsTypes);
+            foreach (var repositorySpec in repositorySpecs)
+            {
+                var repositorySource = GenerateRepositoryClass(repositorySpec);
+                yield return new GeneratedFile
+                {
+                    FileName = $"{repositorySpec.Name}.g.cs",
+                    Content = repositorySource
+                };
+            }
+
+            // Generate repository DI extensions
+            if (repositorySpecs.Any())
+            {
+                var repositoryDiSource = GenerateRepositoryServiceCollectionExtensions(repositorySpecs, context.TargetNamespace);
+                yield return new GeneratedFile
+                {
+                    FileName = "StaticsRepositoryServiceCollectionExtensions.g.cs",
+                    Content = repositoryDiSource
+                };
+            }
+        }
+
+        /// <summary>
+        /// Analyzes discovered types to determine repository requirements
+        /// </summary>
+        private List<RepositorySpec> AnalyzeRepositoryRequirements(IEnumerable<DiscoveredType> discoveredTypes, List<INamedTypeSymbol> staticsTypes)
+        {
+            var repositorySpecs = new List<RepositorySpec>();
+            
+            // Get EfCore discovered entities with DbContext info (ONLY from DbContextSet discovery)
+            var efCoreEntities = discoveredTypes
+                .Where(dt => dt.WasDiscoveredBy("EfCore.DbContextSet"))  // Specific to DbSet<T> discoveries only
+                .ToDictionary(dt => dt.TypeSymbol, dt => new {
+                    DbContextTypeName = dt.DiscoveryContexts.TryGetValue("DbContextType", out var ctxType) ? ctxType : "UnknownDbContext",
+                    DbContextName = dt.DiscoveryContexts.TryGetValue("DbContextName", out var name) ? name : "UnknownContext"
+                });
+
+            // Analyze all service methods from Statics types
+            var allServiceMethods = new List<ServiceMethodInfo>();
+            foreach (var staticClass in staticsTypes)
+            {
+                var serviceMethods = GetStaticServiceMethods(staticClass);
+                foreach (var method in serviceMethods)
+                {
+                    var attribute = GetStaticsServiceMethodAttribute(method);
+                    if (attribute != null)
+                    {
+                        var methodInfo = AnalyzeServiceMethod(method, attribute);
+                        allServiceMethods.Add(methodInfo);
+                    }
+                }
+            }
+
+            // Group service methods by entity type
+            var methodsByEntity = allServiceMethods
+                .Where(sm => sm.EntityType != null)
+                .GroupBy(sm => sm.EntityType, SymbolEqualityComparer.Default);
+
+            // Create entity repositories (unified and Statics-only)
+            foreach (var entityGroup in methodsByEntity)
+            {
+                var entityType = (INamedTypeSymbol)entityGroup.Key!;
+                var entityMethods = entityGroup.ToList();
+                
+                // Check if this entity has EfCore backing
+                var efCoreInfo = efCoreEntities.TryGetValue(entityType, out var efInfo) ? efInfo : null;
+                
+                var repositorySpec = new RepositorySpec
+                {
+                    Name = $"{entityType.Name}Repository",
+                    Namespace = GetRepositoryNamespace(entityType, isGlobal: false),
+                    EntityType = entityType,
+                    DbContextType = null, // For now, just generate Statics-only repositories
+                    KeyPropertyType = GetKeyPropertyType(entityType),
+                    ServiceMethods = entityMethods
+                };
+                
+                repositorySpecs.Add(repositorySpec);
+            }
+
+            // Create global repository for methods without Entity parameter
+            var globalMethods = allServiceMethods
+                .Where(sm => sm.IsGlobalMethod)
+                .ToList();
+                
+            if (globalMethods.Any())
+            {
+                var globalRepositorySpec = new RepositorySpec
+                {
+                    Name = "GlobalRepository",
+                    Namespace = GetRepositoryNamespace(null, isGlobal: true),
+                    EntityType = null,
+                    DbContextType = null,
+                    KeyPropertyType = null,
+                    ServiceMethods = globalMethods
+                };
+                
+                repositorySpecs.Add(globalRepositorySpec);
+            }
+
+            return repositorySpecs;
+        }
+
+        /// <summary>
+        /// Generates a repository class based on the specification
+        /// </summary>
+        private string GenerateRepositoryClass(RepositorySpec spec)
+        {
+            var sb = new StringBuilder();
+            
+            sb.AppendLine("#nullable enable");
+            sb.AppendLine("using System;");
+            sb.AppendLine("using System.Linq;");
+            sb.AppendLine("using System.Threading.Tasks;");
+            sb.AppendLine("using MetaTypes.Abstractions.Vendor.Statics;");
+            sb.AppendLine("using global::Statics.ServiceResult;");
+            
+            if (spec.HasCrud)
+            {
+                sb.AppendLine("using Microsoft.EntityFrameworkCore;");
+            }
+            
+            sb.AppendLine();
+            sb.AppendLine($"namespace {spec.Namespace};");
+            sb.AppendLine();
+
+            // Generate repository class with appropriate interfaces
+            var interfaces = new List<string> { "IStaticsRepository" };
+            if (spec.HasCrud)
+            {
+                interfaces.Add("IEntityRepository");
+            }
+            
+            sb.AppendLine($"public class {spec.Name} : {string.Join(", ", interfaces)}");
+            sb.AppendLine("{");
+
+            // Generate CRUD methods if this is an entity repository with EfCore backing
+            if (spec.HasCrud && spec.EntityType != null && spec.DbContextType != null)
+            {
+                GenerateCrudMethods(sb, spec);
+                sb.AppendLine();
+            }
+
+            // Generate service method wrappers
+            if (spec.ServiceMethods.Any())
+            {
+                GenerateServiceMethodWrappers(sb, spec);
+            }
+
+            sb.AppendLine("}");
+            
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Generates CRUD methods for entity repositories
+        /// </summary>
+        private void GenerateCrudMethods(StringBuilder sb, RepositorySpec spec)
+        {
+            var entityName = spec.EntityType!.Name;
+            var dbContextName = spec.DbContextType!.Name;
+            var keyType = spec.KeyPropertyType ?? "int";
+
+            sb.AppendLine("    // CRUD Methods (EfCore-backed)");
+            
+            // Create method
+            sb.AppendLine($"    public Task<{entityName}> Create({dbContextName} dbCtx)");
+            sb.AppendLine("    {");
+            sb.AppendLine("        throw new NotImplementedException();");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+
+            // Read method
+            sb.AppendLine($"    public Task<{entityName}> Read({dbContextName} dbCtx, {keyType} id)");
+            sb.AppendLine("    {");
+            sb.AppendLine("        throw new NotImplementedException();");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+
+            // Update method
+            sb.AppendLine($"    public Task<{entityName}> Update({dbContextName} dbCtx, {keyType} id)");
+            sb.AppendLine("    {");
+            sb.AppendLine("        throw new NotImplementedException();");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+
+            // Delete method
+            sb.AppendLine($"    public Task Delete({dbContextName} dbCtx, {keyType} id)");
+            sb.AppendLine("    {");
+            sb.AppendLine("        throw new NotImplementedException();");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+
+            // Query method
+            sb.AppendLine($"    public Task<IQueryable<{entityName}>> Query({dbContextName} dbCtx)");
+            sb.AppendLine("    {");
+            sb.AppendLine("        throw new NotImplementedException();");
+            sb.AppendLine("    }");
+        }
+
+        /// <summary>
+        /// Generates service method wrappers that always return Task<>
+        /// </summary>
+        private void GenerateServiceMethodWrappers(StringBuilder sb, RepositorySpec spec)
+        {
+            sb.AppendLine("    // Service Method Wrappers");
+            
+            foreach (var methodInfo in spec.ServiceMethods)
+            {
+                var method = methodInfo.Method;
+                var parameters = string.Join(", ", method.Parameters.Select(p => $"{p.Type.ToDisplayString()} {p.Name}"));
+                var arguments = string.Join(", ", method.Parameters.Select(p => p.Name));
+                var serviceResultType = SimplifyServiceResultTypeName(methodInfo.ServiceResultType);
+                
+                // Generate method signature - always return Task<>
+                sb.AppendLine($"    public Task<{serviceResultType}> {method.Name}({parameters})");
+                sb.AppendLine("    {");
+                
+                // Call the original service method
+                var staticClassName = method.ContainingType.ToDisplayString();
+                if (methodInfo.IsAsync)
+                {
+                    // Original method returns Task<ServiceResult<T>>, so we can await it
+                    sb.AppendLine($"        return {staticClassName}.{method.Name}({arguments});");
+                }
+                else
+                {
+                    // Original method returns ServiceResult<T>, so we wrap it in Task.FromResult
+                    sb.AppendLine($"        var result = {staticClassName}.{method.Name}({arguments});");
+                    sb.AppendLine("        return Task.FromResult(result);");
+                }
+                
+                sb.AppendLine("    }");
+                sb.AppendLine();
+            }
+        }
+
+        /// <summary>
+        /// Generates repository service collection extensions
+        /// </summary>
+        private string GenerateRepositoryServiceCollectionExtensions(List<RepositorySpec> repositorySpecs, string targetNamespace)
+        {
+            var sb = new StringBuilder();
+            
+            sb.AppendLine("#nullable enable");
+            sb.AppendLine("using System;");
+            sb.AppendLine("using Microsoft.Extensions.DependencyInjection;");
+            sb.AppendLine("using MetaTypes.Abstractions.Vendor.Statics;");
+            sb.AppendLine();
+            
+            var methodName = NamingUtils.ToAddVendorMetaTypesMethodName(targetNamespace, "StaticsRepositories");
+            
+            sb.AppendLine("public static class StaticsRepositoryServiceCollectionExtensions");
+            sb.AppendLine("{");
+            sb.AppendLine($"    public static IServiceCollection {methodName}(this IServiceCollection services)");
+            sb.AppendLine("    {");
+
+            // Register entity repositories
+            foreach (var spec in repositorySpecs.Where(r => !r.IsGlobal))
+            {
+                sb.AppendLine($"        services.AddSingleton<{spec.Namespace}.{spec.Name}>();");
+            }
+
+            // Register global repository
+            var globalRepo = repositorySpecs.FirstOrDefault(r => r.IsGlobal);
+            if (globalRepo != null)
+            {
+                sb.AppendLine($"        services.AddSingleton<{globalRepo.Namespace}.{globalRepo.Name}>();");
+            }
+
+            // Register interface implementations for IStaticsRepository
+            foreach (var spec in repositorySpecs)
+            {
+                sb.AppendLine($"        services.AddSingleton<IStaticsRepository>(sp => sp.GetRequiredService<{spec.Namespace}.{spec.Name}>());");
+            }
+
+            // Register interface implementations for IEntityRepository (only those with CRUD methods)
+            foreach (var spec in repositorySpecs.Where(r => r.HasCrud))
+            {
+                sb.AppendLine($"        services.AddSingleton<IEntityRepository>(sp => sp.GetRequiredService<{spec.Namespace}.{spec.Name}>());");
+            }
+
+            sb.AppendLine();
+            sb.AppendLine("        return services;");
+            sb.AppendLine("    }");
+            sb.AppendLine("}");
+            
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Helper methods for repository generation
+        /// </summary>
+        private string GetRepositoryNamespace(INamedTypeSymbol? entityType, bool isGlobal)
+        {
+            if (isGlobal)
+            {
+                // Global repository goes in {TargetNamespace}.GlobalRepository
+                return "Sample.Statics.ServiceMethod.GlobalRepository";
+            }
+            
+            // Entity repositories go in the same namespace as the entity
+            return entityType?.ContainingNamespace.ToDisplayString() ?? "Sample.Statics.ServiceMethod";
+        }
+
+
+        private string? GetKeyPropertyType(INamedTypeSymbol entityType)
+        {
+            // Look for [Key] attribute on properties
+            var keyProperties = entityType.GetMembers()
+                .OfType<IPropertySymbol>()
+                .Where(p => p.GetAttributes().Any(attr => attr.AttributeClass?.Name == "KeyAttribute"))
+                .ToList();
+
+            if (keyProperties.Count == 1)
+            {
+                return keyProperties[0].Type.ToDisplayString();
+            }
+            
+            // Fallback to int if no or multiple keys found
+            return "int";
+        }
+
+        private AttributeData? GetStaticsServiceMethodAttribute(IMethodSymbol method)
+        {
+            return method.GetAttributes()
+                .FirstOrDefault(attr => attr.AttributeClass?.Name == "StaticsServiceMethodAttribute");
         }
 
         private string GenerateStaticsExtension(INamedTypeSymbol typeSymbol, bool includeSharedClasses = false)
@@ -1008,6 +1338,21 @@ namespace MetaTypes.Generator.Common.Vendor.Statics.Generation
         public bool IsEntityGlobal { get; set; }
         public bool IsEntitySpecific { get; set; }
         public bool IsGlobalMethod { get; set; }
+    }
+
+    /// <summary>
+    /// Represents a repository specification for generation
+    /// </summary>
+    public class RepositorySpec
+    {
+        public string Name { get; set; } = "";                    // "UserRepository", "GlobalRepository"
+        public string Namespace { get; set; } = "";               // Target namespace or "{TargetNamespace}.GlobalRepository"
+        public INamedTypeSymbol? EntityType { get; set; }         // null for GlobalRepository
+        public INamedTypeSymbol? DbContextType { get; set; }      // null for Statics-only
+        public string? KeyPropertyType { get; set; }              // from [Key] attribute, for CRUD id parameters
+        public List<ServiceMethodInfo> ServiceMethods { get; set; } = new();
+        public bool HasCrud => DbContextType != null;
+        public bool IsGlobal => EntityType == null;
     }
 
     /// <summary>
