@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Sample.Statics.ServiceMethod.Models;
 using Statics.ServiceBroker.Attributes;
+using Statics.ServiceResult;
 
 namespace Sample.Statics.ServiceMethod.Services;
 
@@ -15,25 +16,27 @@ namespace Sample.Statics.ServiceMethod.Services;
 public static class OrderServices
 {
     [StaticsServiceMethod(Path = "/orders/{id:int}/payment", Entity = typeof(Order), ResponseType = typeof(bool), Policy = ServicePolicyType.Restricted)]
-    public static bool ProcessPayment(
+    public static ServiceResult<bool> ProcessPayment(
         [Required] int id, 
         [Range(0.01, 1000000)] decimal amount,
         string paymentMethod = "Credit")
     {
-        return amount > 0;
+        var success = amount > 0;
+        return new ServiceResult<bool>(success ? 200 : 400, success);
     }
 
     [StaticsServiceMethod(Path = "/orders/{id:int}/events", Entity = typeof(Order))]
-    public static void LogOrderEvent(
+    public static ServiceResult LogOrderEvent(
         int id, 
         string eventType, 
         [MaxLength(500)] string? description = null)
     {
         // Simulate logging
+        return new ServiceResult(200, message: "Event logged");
     }
 
     [StaticsServiceMethod(Path = "/orders/{id:int}/total", Entity = typeof(Order), ResponseType = typeof(decimal))]
-    public static async Task<decimal> CalculateOrderTotalAsync(
+    public static async Task<ServiceResult<decimal>> CalculateOrderTotalAsync(
         [Required] int id,
         [FromServices] ILogger logger,
         [FromServices] IServiceProvider services,
@@ -42,7 +45,8 @@ public static class OrderServices
     {
         logger.LogInformation("Calculating total for order {OrderId}", id);
         await Task.Delay(50, cancellationToken);
-        return includeShipping ? 125.50m : 100.00m;
+        var total = includeShipping ? 125.50m : 100.00m;
+        return new ServiceResult<decimal>(200, total);
     }
 
     // Internal method should not be discovered

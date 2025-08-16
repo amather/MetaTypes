@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Sample.Statics.ServiceMethod.Attributes;
 using Sample.Statics.ServiceMethod.Models;
 using Statics.ServiceBroker.Attributes;
+using Statics.ServiceResult;
 
 namespace Sample.Statics.ServiceMethod.Services;
 
@@ -14,26 +15,28 @@ namespace Sample.Statics.ServiceMethod.Services;
 public static class UserServices
 {
     [StaticsServiceMethod(Path = "/users/{id:int}", Entity = typeof(User), Policy = ServicePolicyType.Anonymous)]
-    public static string GetUserById(int id)
+    public static ServiceResult<string> GetUserById(int id)
     {
-        return $"User {id}";
+        return new ServiceResult<string>(200, $"User {id}");
     }
 
     [StaticsServiceMethod(Path = "/users", EntityGlobal = true, ResponseType = typeof(bool))]
-    public static bool CreateUser(string userName, string email, bool isActive = true)
+    public static ServiceResult<bool> CreateUser(string userName, string email, bool isActive = true)
     {
         // Simulate user creation
-        return !string.IsNullOrEmpty(userName) && !string.IsNullOrEmpty(email);
+        var success = !string.IsNullOrEmpty(userName) && !string.IsNullOrEmpty(email);
+        return new ServiceResult<bool>(success ? 201 : 400, success);
     }
 
     [StaticsServiceMethod(Path = "/users/{id:int}/status", Entity = typeof(User))]
-    public static void UpdateUserStatus(int id, bool isActive, string? reason = null)
+    public static ServiceResult UpdateUserStatus(int id, bool isActive, string? reason = null)
     {
         // Simulate status update
+        return new ServiceResult(200, message: "User status updated");
     }
 
     [StaticsServiceMethod(Path = "/users/{id:int}/detailed", Entity = typeof(User), ResponseType = typeof(string), Policy = ServicePolicyType.Restricted)]
-    public static async Task<string> GetUserWithLoggingAsync(
+    public static async Task<ServiceResult<string>> GetUserWithLoggingAsync(
         int id, 
         [FromServices] ILogger logger,
         [FromServices] IServiceProvider serviceProvider,
@@ -41,26 +44,34 @@ public static class UserServices
     {
         logger.LogInformation("Getting user {UserId}", id);
         await Task.Delay(100, cancellationToken);
-        return $"User {id} (logged)";
+        return new ServiceResult<string>(200, $"User {id} (logged)");
     }
 
     [StaticsServiceMethod(Path = "/users/validate", EntityGlobal = true, ResponseType = typeof(bool), Policy = ServicePolicyType.Anonymous)] 
-    public static bool ValidateUserData(
+    public static ServiceResult<bool> ValidateUserData(
         string username,
         string email,
         [FromServices] ILogger logger,
         int maxRetries = 3)
     {
         logger.LogDebug("Validating user data for {Username}", username);
-        return !string.IsNullOrEmpty(username) && email.Contains('@');
+        var isValid = !string.IsNullOrEmpty(username) && email.Contains('@');
+        return new ServiceResult<bool>(200, isValid);
     }
 
     // Example showing CONSTRUCTOR ARGUMENTS vs NAMED ARGUMENTS
     [CustomService("UserMigration", 100, Description = "Migrates user data", IsEnabled = true, ReturnType = typeof(string))]
     [StaticsServiceMethod(Path = "/users/migrate", Policy = ServicePolicyType.Restricted)]
-    public static string MigrateUserData(int batchSize)
+    public static ServiceResult<string> MigrateUserData(int batchSize)
     {
-        return $"Migrated {batchSize} users";
+        return new ServiceResult<string>(200, $"Migrated {batchSize} users");
+    }
+
+    // Test method with invalid return type (for validation testing)
+    [StaticsServiceMethod(Path = "/users/test-invalid", EntityGlobal = true)]
+    public static string InvalidReturnTypeMethod()
+    {
+        return "This should fail validation";
     }
 
     // This method should not be discovered (no attribute)

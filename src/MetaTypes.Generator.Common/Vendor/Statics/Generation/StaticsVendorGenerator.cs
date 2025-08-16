@@ -122,6 +122,7 @@ namespace MetaTypes.Generator.Common.Vendor.Statics.Generation
             sb.AppendLine("using MetaTypes.Abstractions;");
             sb.AppendLine("using MetaTypes.Abstractions.Vendor.Statics;");
             sb.AppendLine("using global::Statics.ServiceBroker.Attributes;");
+            sb.AppendLine("using global::Statics.ServiceResult;");
             sb.AppendLine();
             
             // Use the assembly name for the MetaType namespace to match the base generator
@@ -182,6 +183,10 @@ namespace MetaTypes.Generator.Common.Vendor.Statics.Generation
                 // Remove nullable annotation for typeof since it can't handle nullable reference types
                 returnTypeString = returnTypeString.TrimEnd('?');
             }
+            
+            // Simplify ServiceResult type names for better readability in generated code
+            returnTypeString = SimplifyServiceResultTypeName(returnTypeString);
+            
             sb.AppendLine($"    public Type ReturnType => typeof({returnTypeString});");
             
             // Method attributes
@@ -711,6 +716,13 @@ namespace MetaTypes.Generator.Common.Vendor.Statics.Generation
                 Errors = new List<string>()
             };
 
+            // Rule 0: Validate return type is StaticsServiceResult<T> or StaticsServiceResult
+            var returnTypeString = method.ReturnType.ToDisplayString();
+            if (!IsValidStaticsServiceResultReturnType(returnTypeString))
+            {
+                result.Errors.Add($"Method must return StaticsServiceResult<T> or StaticsServiceResult, but returns '{returnTypeString}'");
+            }
+
             // Extract attribute properties
             var pathArg = GetAttributeArgumentValue(attribute, "Path")?.ToString();
             var entityArg = GetAttributeArgumentValue(attribute, "Entity") as ITypeSymbol;
@@ -842,6 +854,95 @@ namespace MetaTypes.Generator.Common.Vendor.Statics.Generation
         }
 
         /// <summary>
+        /// Simplifies ServiceResult type names in generated code to use the shorter form
+        /// </summary>
+        private string SimplifyServiceResultTypeName(string returnTypeString)
+        {
+            // Replace fully qualified ServiceResult types with simplified versions
+            if (returnTypeString.StartsWith("Statics.ServiceResult.ServiceResult<"))
+            {
+                // ServiceResult<T> -> ServiceResult<T>
+                return returnTypeString.Replace("Statics.ServiceResult.", "");
+            }
+            else if (returnTypeString == "Statics.ServiceResult.ServiceResult")
+            {
+                // ServiceResult -> ServiceResult
+                return "ServiceResult";
+            }
+            else if (returnTypeString.StartsWith("System.Threading.Tasks.Task<Statics.ServiceResult.ServiceResult"))
+            {
+                // Task<ServiceResult<T>> -> Task<ServiceResult<T>>
+                return returnTypeString.Replace("Statics.ServiceResult.", "");
+            }
+            
+            return returnTypeString;
+        }
+
+        /// <summary>
+        /// Analyzes a service method to extract async and return type information for repository generation
+        /// </summary>
+        private ServiceMethodInfo AnalyzeServiceMethod(IMethodSymbol method, AttributeData attribute)
+        {
+            var returnTypeString = method.ReturnType.ToDisplayString();
+            
+            // Detect if method is async (returns Task<>)
+            bool isAsync = returnTypeString.StartsWith("System.Threading.Tasks.Task<") && returnTypeString.EndsWith(">");
+            
+            // Extract the actual ServiceResult type
+            string serviceResultType;
+            if (isAsync)
+            {
+                // Extract inner type from Task<ServiceResult<T>>
+                serviceResultType = returnTypeString.Substring("System.Threading.Tasks.Task<".Length);
+                serviceResultType = serviceResultType.Substring(0, serviceResultType.Length - 1); // Remove trailing >
+            }
+            else
+            {
+                // Direct ServiceResult<T> return
+                serviceResultType = returnTypeString;
+            }
+            
+            // Extract Entity and EntityGlobal information from attribute
+            var entityArg = GetAttributeArgumentValue(attribute, "Entity") as ITypeSymbol;
+            var entityGlobalArg = GetAttributeArgumentValue(attribute, "EntityGlobal");
+            
+            bool hasEntity = entityArg != null;
+            bool entityGlobal = entityGlobalArg is bool b && b;
+            bool hasIdParameter = method.Parameters.Any(p => p.Name == "id");
+            
+            return new ServiceMethodInfo
+            {
+                Method = method,
+                Attribute = attribute,
+                IsAsync = isAsync,
+                ServiceResultType = serviceResultType,
+                EntityType = entityArg as INamedTypeSymbol,
+                IsEntityGlobal = hasEntity && entityGlobal,
+                IsEntitySpecific = hasEntity && !entityGlobal && hasIdParameter,
+                IsGlobalMethod = !hasEntity
+            };
+        }
+
+        /// <summary>
+        /// Validates if a return type string represents a valid StaticsServiceResult type
+        /// </summary>
+        private bool IsValidStaticsServiceResultReturnType(string returnTypeString)
+        {
+            // Handle async methods - extract the inner type from Task<T>
+            var actualReturnType = returnTypeString;
+            if (returnTypeString.StartsWith("System.Threading.Tasks.Task<") && returnTypeString.EndsWith(">"))
+            {
+                // Extract inner type from Task<StaticsServiceResult<T>>
+                actualReturnType = returnTypeString.Substring("System.Threading.Tasks.Task<".Length);
+                actualReturnType = actualReturnType.Substring(0, actualReturnType.Length - 1); // Remove trailing >
+            }
+            
+            // Check if it's exactly StaticsServiceResult or starts with StaticsServiceResult<
+            return actualReturnType == "Statics.ServiceResult.ServiceResult" ||
+                   actualReturnType.StartsWith("Statics.ServiceResult.ServiceResult<");
+        }
+
+        /// <summary>
         /// Generates diagnostic file content for validation results
         /// </summary>
         private string GenerateValidationDiagnostics(List<ValidationResult> results)
@@ -863,6 +964,7 @@ namespace MetaTypes.Generator.Common.Vendor.Statics.Generation
             }
 
             sb.AppendLine("// Validation Rules:");
+            sb.AppendLine("//   0. Methods must return StaticsServiceResult<T> or StaticsServiceResult (async methods via Task<T> are supported)");
             sb.AppendLine("//   1. All route parameters in Path must exist as method parameters");
             sb.AppendLine("//   2. Methods with 'id' parameter must specify Entity parameter");
             sb.AppendLine("//   3. Methods with Entity + 'id' should not have EntityGlobal = true");
@@ -893,6 +995,21 @@ namespace MetaTypes.Generator.Common.Vendor.Statics.Generation
         public bool HasErrors => Errors.Any();
     }
     
+    /// <summary>
+    /// Represents analyzed information about a service method including async characteristics
+    /// </summary>
+    public class ServiceMethodInfo
+    {
+        public IMethodSymbol Method { get; set; } = null!;
+        public AttributeData Attribute { get; set; } = null!;
+        public bool IsAsync { get; set; }
+        public string ServiceResultType { get; set; } = "";
+        public INamedTypeSymbol? EntityType { get; set; }
+        public bool IsEntityGlobal { get; set; }
+        public bool IsEntitySpecific { get; set; }
+        public bool IsGlobalMethod { get; set; }
+    }
+
     /// <summary>
     /// Configuration for Statics vendor generator
     /// </summary>

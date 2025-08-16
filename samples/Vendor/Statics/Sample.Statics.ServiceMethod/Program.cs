@@ -61,23 +61,23 @@ class Program
         Console.WriteLine("\n=== Testing Static Service Methods ===");
         
         // Test UserServices
-        var user = UserServices.GetUserById(123);
-        Console.WriteLine($"Retrieved: {user}");
+        var userResult = UserServices.GetUserById(123);
+        Console.WriteLine($"Retrieved: {(userResult.IsSuccess ? userResult.Value : "Failed")}");
         
-        var userCreated = UserServices.CreateUser("john.doe", "john@example.com");
-        Console.WriteLine($"User created: {userCreated}");
+        var userCreateResult = UserServices.CreateUser("john.doe", "john@example.com");
+        Console.WriteLine($"User created: {userCreateResult.IsSuccess} (Value: {userCreateResult.Value})");
         
-        UserServices.UpdateUserStatus(123, false, "Account suspended");
-        Console.WriteLine("User status updated");
+        var userStatusResult = UserServices.UpdateUserStatus(123, false, "Account suspended");
+        Console.WriteLine($"User status updated: {(userStatusResult.IsSuccess ? "Success" : "Failed")}");
         
         // Test OrderServices
         var orderId = 12345; // Simulate order ID
         
-        var paymentProcessed = OrderServices.ProcessPayment(orderId, 299.99m, "Visa");
-        Console.WriteLine($"Payment processed: {paymentProcessed}");
+        var paymentResult = OrderServices.ProcessPayment(orderId, 299.99m, "Visa");
+        Console.WriteLine($"Payment processed: {paymentResult.IsSuccess} (Amount valid: {paymentResult.Value})");
         
-        OrderServices.LogOrderEvent(orderId, "PAYMENT_PROCESSED", "Payment successfully processed");
-        Console.WriteLine("Order event logged");
+        var logResult = OrderServices.LogOrderEvent(orderId, "PAYMENT_PROCESSED", "Payment successfully processed");
+        Console.WriteLine($"Order event logged: {(logResult.IsSuccess ? "Success" : "Failed")}");
         
         Console.WriteLine("\n✅ Static service method execution completed");
         Console.WriteLine("✅ Statics vendor DI extensions working correctly");
