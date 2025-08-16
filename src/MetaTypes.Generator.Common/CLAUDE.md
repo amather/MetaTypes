@@ -66,7 +66,7 @@ The generator now produces target-namespace-specific DI extension methods:
 - Each vendor generates its own DI extension class
 - Method format: `AddMetaTypes{TargetNamespace}{VendorName}()`
 - Service retrieval: `Get{VendorName}MetaTypes()` methods for individual entities
-- **NEW**: DbContext collections: `GetEfCoreDbContexts()`, `GetEfCoreDbContext<T>()` methods
+- DbContext collections: `GetEfCoreDbContexts()`, `GetEfCoreDbContext<T>()` methods
 - Example: `AddMetaTypesSampleConsoleEfCore()` and `serviceProvider.GetEfCoreMetaTypes()`
 
 ## Directory Structure
@@ -135,7 +135,8 @@ public void Configure(JsonElement? config)
 ```
 
 ### Available Vendors
-- **EfCore Vendor**: Generates Entity Framework Core extensions with table names, keys, relationships, and **NEW: DbContext collections**
+- **EfCore Vendor**: Generates Entity Framework Core extensions with table names, keys, relationships, and DbContext collections
+- **Statics Vendor**: Generates static service method metadata and repository patterns with consistent async APIs
 
 ### Discovery Methods by Vendor
 - **Core Methods**:
@@ -144,14 +145,25 @@ public void Configure(JsonElement? config)
 - **EfCore Methods**:
   - `"EfCore.TableAttribute"` - Types with `[Table]` attribute (syntax-based)
   - `"EfCore.DbContextSet"` - Entity types found via `DbSet<T>` properties
+- **Statics Methods**:
+  - `"Statics.Attribute"` - Static classes with `[StaticsServiceMethod]` attributed methods
 
 ### Generated Files Structure
+
+#### EfCore Vendor Files
 For a type discovered by EfCore methods:
 - **Base File**: `TestEntityMetaType.g.cs` (implements `IMetaType<TestEntity>`) - requires `BaseMetaTypes: true`
 - **EfCore Extension**: `TestEntityEfCoreMetaType.g.cs` (partial class implementing `IMetaTypeEfCore`)
-- **NEW: DbContext Collections**: `{ContextName}MetaTypesEfCoreDbContext.g.cs` (implements `IMetaTypesEfCoreDbContext`)
+- **DbContext Collections**: `{ContextName}MetaTypesEfCoreDbContext.g.cs` (implements `IMetaTypesEfCoreDbContext`)
 
-### NEW: EfCore DbContext Collection Features
+#### Statics Vendor Files
+For a static class discovered by Statics methods:
+- **Base File**: `TestServicesMetaType.g.cs` (implements `IMetaType<TestServices>`) - requires `BaseMetaTypes: true`
+- **Statics Extension**: `TestServicesMetaTypeStatics.g.cs` (partial class implementing `IMetaTypeStatics`)
+- **Repository Files**: `{EntityName}Repository.g.cs` and `GlobalRepository.g.cs` (implement `IStaticsRepository`)
+- **DI Extensions**: `StaticsServiceCollectionExtensions.g.cs` and `StaticsRepositoryServiceCollectionExtensions.g.cs`
+
+### EfCore DbContext Collection Features
 
 The EfCore vendor now generates DbContext collections that organize entity types by their originating DbContext:
 
@@ -187,7 +199,53 @@ public static IMetaTypesEfCoreDbContext? GetEfCoreDbContext<TDbContext>(this ISe
 public static IMetaTypesEfCoreDbContext? GetEfCoreDbContext(this IServiceProvider, Type dbContextType)
 ```
 
+### Statics Repository Generation Features
+
+The Statics vendor generates repository classes that wrap static service methods with consistent async APIs:
+
+#### Generated Repository Classes
+```csharp
+// Entity Repository (for methods with Entity = typeof(User))
+public class UserRepository : IStaticsRepository
+{
+    // Entity-specific methods (with id parameter)
+    public Task<ServiceResult<string>> GetUserById(int id) => Task.FromResult(UserServices.GetUserById(id));
+    
+    // Entity-global methods (no id parameter, but Entity = typeof(User))
+    public Task<ServiceResult<bool>> ValidateUserData(string username, string email, ...) => /* ... */;
+}
+
+// Global Repository (for methods without Entity)
+public class GlobalRepository : IStaticsRepository  
+{
+    public Task<ServiceResult<bool>> CreateUser(string userName, string email, bool isActive) => /* ... */;
+}
+```
+
+#### Repository Method Classification
+- **Entity-Specific**: `Entity = typeof(User)` + has `id` parameter → Goes in `UserRepository`
+- **Entity-Global**: `Entity = typeof(User), EntityGlobal = true` + no `id` parameter → Goes in `UserRepository`  
+- **Global**: No `Entity` parameter → Goes in `GlobalRepository`
+
+#### Async Consistency
+All repository methods return `Task<>` regardless of original method signatures:
+- Original sync methods: `ServiceResult<T>` → wrapped with `Task.FromResult()`
+- Original async methods: `Task<ServiceResult<T>>` → passed through directly
+
+#### DI Registration
+```csharp
+// Register repositories
+services.AddMetaTypesSampleStaticsServiceMethodStaticsRepositories();
+
+// Retrieve repositories
+var repositories = serviceProvider.GetServices<IStaticsRepository>();
+var userRepo = serviceProvider.GetService<UserRepository>();
+var globalRepo = serviceProvider.GetService<GlobalRepository>();
+```
+
 ### Vendor Dependencies
 - **EfCore Vendor**: Requires base MetaTypes by default (`RequireBaseTypes: true`) since extensions are partial classes
+- **Statics Vendor**: Requires base MetaTypes by default (`RequireBaseTypes: true`) since extensions are partial classes
 - **Independent Generation**: Vendor generation runs separately from base generation but may depend on base types existing
 - **DbContext Collection Support**: Works with both `CrossAssembly: true/false` configurations
+- **Repository Generation**: Works with both `CrossAssembly: true/false` configurations

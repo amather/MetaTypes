@@ -5,6 +5,8 @@ A C# source generator that produces compile-time metadata for classes, structs, 
 - Custom type discovery methods
 - Vendor-specific metadata extensions via partial class generation
 
+> **Development Status**: This project is in active development and has not yet reached a versioned release. Documentation focuses on current features without version tracking, deprecated/obsolete markers, or "NEW" feature annotations until the first stable release.
+
 ## Quick Start
 
 Primary showcase (Entity Framework Core vendor):
@@ -26,7 +28,7 @@ dotnet run
 
 Features:
 - Table metadata (names, keys, foreign keys)
-- **NEW**: DbContext collections for organized entity access
+- DbContext collections for organized entity access
 - Cross-assembly entity discovery
 - DI integration with service provider extensions
 
@@ -53,7 +55,7 @@ Status: 🚧 In development
 
 ### Vendor System
 - **EfCore Vendor** - Entity Framework Core extensions with table mapping and relationships
-- **Statics Vendor** - Service method discovery for static classes
+- **Statics Vendor** - Service method discovery and repository generation for static classes
 
 ## Recent Architecture Changes
 
@@ -62,6 +64,7 @@ Status: 🚧 In development
 3. **Vendor-Specific DI Methods** - Separate DI registration methods for each vendor
 4. **Vendor Folder Structure** - Consistent vendor pattern across all projects
 5. **Pluggable Vendor System** - Vendor-agnostic core with specialized extensions
+6. **Repository Generation** - Statics vendor generates repositories with consistent async APIs
 
 ## Generated DI Extension Methods
 
@@ -105,13 +108,22 @@ services.AddMetaTypesSampleConsoleEfCore();
 // Statics vendor extensions  
 services.AddMetaTypesSampleConsoleStatics();
 
+// Statics repository extensions
+services.AddMetaTypesSampleConsoleStaticsRepositories();
+
 // Service retrieval - Individual entity types
 var efCoreTypes = serviceProvider.GetEfCoreMetaTypes();
 var staticsTypes = serviceProvider.GetStaticsMetaTypes();
 
-// NEW: Service retrieval - DbContext collections
+// Service retrieval - DbContext collections
 var dbContexts = serviceProvider.GetEfCoreDbContexts();
 var specificContext = serviceProvider.GetEfCoreDbContext<MyDbContext>();
+
+// Service retrieval - Repository collections
+var staticsRepositories = serviceProvider.GetServices<IStaticsRepository>();
+var entityRepositories = serviceProvider.GetServices<IEntityRepository>();
+var userRepository = serviceProvider.GetService<UserRepository>();
+var globalRepository = serviceProvider.GetService<GlobalRepository>();
 ```
 
 ## Configuration

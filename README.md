@@ -88,7 +88,7 @@ foreach (var entityType in efCoreTypes)
     Console.WriteLine($"Primary keys: {string.Join(", ", keys.Select(k => ((IMetaTypeMember)k).MemberName))}");
 }
 
-// NEW: Access entities organized by DbContext
+// Access entities organized by DbContext
 var dbContexts = serviceProvider.GetEfCoreDbContexts();
 foreach (var dbContext in dbContexts)
 {
