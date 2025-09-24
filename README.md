@@ -1,6 +1,6 @@
 # Disclaimer from a human
 
-This project was vibe coded with claude code and it had a very hard time to understand (i.e. not hallucinate) what .NET source generators can do and what not. 
+This project was vibe coded with claude code and claude had a very hard time to understand (i.e. not hallucinate) what .NET source generators can do and what not. 
 
 The current state of the code is: compiling, but missing real-world usage. 
 
