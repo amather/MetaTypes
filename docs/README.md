@@ -95,18 +95,17 @@ When no configuration is provided, MetaTypes uses these defaults:
 
 ```json
 {
-  "AssemblyName": null,          // Auto-detected from types' namespaces
-  "EfCoreDetection": false,      // Disabled unless EfCore is detected
-  "DiagnosticFiles": false,      // No diagnostic output
-  "DiscoveryMethods": {
-    "Common": {
-      "AttributeBased": true,    // Scan for [MetaType] attributes
-      "ReferencedTypes": true    // Include types referenced by marked types
+  "MetaTypes.Generator": {
+    "Generation": {
+      "BaseMetaTypes": true
     },
-    "EfCore": {
-      "DbContextBased": false,   // Enabled when EfCore detected
-      "EntityBased": false       // Enabled when EfCore detected
-    }
+    "EnabledVendors": [],
+    "VendorConfigs": {},
+    "Discovery": {
+      "CrossAssembly": false,
+      "Methods": ["MetaTypes.Attribute", "MetaTypes.Reference"]
+    },
+    "EnableDiagnosticFiles": false
   }
 }
 ```
@@ -117,28 +116,39 @@ Create a `metatypes.config.json` file in your project root:
 
 ```json
 {
-  "AssemblyName": "MyApp.Business",
-  "EfCoreDetection": true,
-  "DiagnosticFiles": true,
-  "DiscoveryMethods": {
-    "Common": {
-      "AttributeBased": true,
-      "ReferencedTypes": true
+  "MetaTypes.Generator": {
+    "Generation": {
+      "BaseMetaTypes": true
     },
-    "EfCore": {
-      "DbContextBased": true,
-      "EntityBased": true
-    }
+    "EnabledVendors": ["EfCore", "Statics"],
+    "VendorConfigs": {
+      "EfCore": {
+        "RequireBaseTypes": true,
+        "IncludeNavigationProperties": true,
+        "IncludeForeignKeys": true
+      },
+      "Statics": {
+        "RequireBaseTypes": true,
+        "GenerateRepositories": true
+      }
+    },
+    "Discovery": {
+      "CrossAssembly": false,
+      "Methods": ["MetaTypes.Attribute", "MetaTypes.Reference", "EfCore.DbContextSet", "Statics.Attribute"]
+    },
+    "EnableDiagnosticFiles": false
   }
 }
 ```
 
 **Configuration Options:**
 
-- `AssemblyName`: Override the generated namespace (default: auto-detected)
-- `EfCoreDetection`: Enable Entity Framework Core integration (default: auto-detected)
-- `DiagnosticFiles`: Generate diagnostic files for debugging (default: false)
-- `DiscoveryMethods`: Control which discovery methods are enabled
+- `Generation.BaseMetaTypes`: Generate core MetaType classes (default: true)
+- `EnabledVendors`: Array of vendor names to enable (e.g., "EfCore", "Statics")
+- `VendorConfigs`: Vendor-specific configuration objects
+- `Discovery.CrossAssembly`: Generate unified provider across assemblies (default: false)
+- `Discovery.Methods`: Array of discovery method identifiers
+- `EnableDiagnosticFiles`: Generate diagnostic files for debugging (default: false)
 
 ### MSBuild Configuration
 
@@ -146,17 +156,18 @@ Configure through MSBuild properties in your `.csproj`:
 
 ```xml
 <PropertyGroup>
-  <MetaTypeAssemblyName>MyApp.Business</MetaTypeAssemblyName>
-  <MetaTypeEfCoreDetection>true</MetaTypeEfCoreDetection>
-  <MetaTypeDiagnosticFiles>true</MetaTypeDiagnosticFiles>
+  <MetaTypesGenerateBaseTypes>true</MetaTypesGenerateBaseTypes>
+  <MetaTypesEnabledVendors>EfCore;Statics</MetaTypesEnabledVendors>
+  <MetaTypesCrossAssembly>false</MetaTypesCrossAssembly>
+  <MetaTypesDiscoveryMethods>MetaTypes.Attribute;EfCore.DbContextSet;Statics.Attribute</MetaTypesDiscoveryMethods>
+  <MetaTypesDiagnosticFiles>false</MetaTypesDiagnosticFiles>
 </PropertyGroup>
 
 <ItemGroup>
-  <CompilerVisibleItemMetadata Include="MetaTypeConfig" MetadataName="DiscoveryMethod" />
-  <MetaTypeConfig Include="Common.AttributeBased" DiscoveryMethod="true" />
-  <MetaTypeConfig Include="Common.ReferencedTypes" DiscoveryMethod="true" />
-  <MetaTypeConfig Include="EfCore.DbContextBased" DiscoveryMethod="true" />
-  <MetaTypeConfig Include="EfCore.EntityBased" DiscoveryMethod="false" />
+  <CompilerVisibleItemMetadata Include="MetaTypesVendorConfig" MetadataName="VendorName" />
+  <CompilerVisibleItemMetadata Include="MetaTypesVendorConfig" MetadataName="RequireBaseTypes" />
+  <MetaTypesVendorConfig Include="EfCore" VendorName="EfCore" RequireBaseTypes="true" />
+  <MetaTypesVendorConfig Include="Statics" VendorName="Statics" RequireBaseTypes="true" />
 </ItemGroup>
 ```
 
@@ -164,18 +175,19 @@ Configure through MSBuild properties in your `.csproj`:
 
 MetaTypes includes intelligent auto-detection:
 
-1. **Assembly Name**: Derived from the most common namespace prefix of discovered types
-2. **EfCore Detection**: Enabled when `Microsoft.EntityFrameworkCore` package is referenced
-3. **Discovery Methods**: EfCore methods enabled automatically when EfCore is detected
+1. **Target Namespace**: Derived from the assembly where the generator runs or most common namespace prefix
+2. **Vendor Detection**: EfCore vendor auto-added to `EnabledVendors` when `Microsoft.EntityFrameworkCore` package is referenced
+3. **Discovery Methods**: EfCore discovery methods auto-added when EfCore vendor is enabled
 
 ### Configuration Validation
 
 The generator validates configuration and provides helpful error messages:
 
 - **Invalid JSON**: Clear parsing error messages with file location
-- **Missing Assembly Name**: Warning when auto-detection fails
+- **Missing Target Namespace**: Warning when auto-detection fails
 - **Conflicting Settings**: Warnings when MSBuild and JSON conflict
-- **Dependency Issues**: Errors when EfCore features requested without EfCore reference
+- **Vendor Dependencies**: Errors when vendor features requested without required package references
+- **Discovery Method Issues**: Warnings when discovery methods don't find any types
 
 ## Generated Types Documentation
 
@@ -187,6 +199,7 @@ MetaTypes generates several types of classes to provide comprehensive type metad
 2. **[MetaTypeMember Classes](./generated-types/MetaTypeMember.md)** - Individual property/field metadata with dynamic access
 3. **[MetaTypes Provider](./generated-types/MetaTypesProvider.md)** - Assembly-level registry of all MetaTypes
 4. **[EfCore Extensions](./generated-types/EfCoreExtensions.md)** - Entity Framework Core specific metadata
+5. **[Statics Extensions](./generated-types/StaticsExtensions.md)** - Static service method metadata and repository generation
 
 ### Generated Code Structure
 
@@ -224,7 +237,7 @@ public class Customer
 }
 
 // Register with DI
-services.AddMetaTypes<MyApp.Business.MetaTypes>();
+services.AddMetaTypesMyAppBusiness();
 
 // Use at runtime
 var mtCustomer = serviceProvider.GetMetaType<Customer>();

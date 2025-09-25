@@ -19,11 +19,17 @@ EfCore extensions are automatically enabled when:
 **Configuration Control:**
 ```json
 {
-  "EfCoreDetection": true,  // Force enable/disable
-  "DiscoveryMethods": {
-    "EfCore": {
-      "DbContextBased": true,   // Scan DbContext entities
-      "EntityBased": true       // Include EF attributes on all types
+  "MetaTypes.Generator": {
+    "EnabledVendors": ["EfCore"],
+    "VendorConfigs": {
+      "EfCore": {
+        "RequireBaseTypes": true,
+        "IncludeNavigationProperties": true,
+        "IncludeForeignKeys": true
+      }
+    },
+    "Discovery": {
+      "Methods": ["EfCore.DbContextSet", "EfCore.TableAttribute"]
     }
   }
 }
@@ -429,7 +435,9 @@ public class RelationshipMapper
 
 ```json
 {
-  "EfCoreDetection": true
+  "MetaTypes.Generator": {
+    "EnabledVendors": ["EfCore"]
+  }
 }
 ```
 
@@ -439,24 +447,30 @@ This enables basic EfCore features with auto-detection of DbContext entities.
 
 ```json
 {
-  "EfCoreDetection": true,
-  "DiagnosticFiles": true,
-  "DiscoveryMethods": {
-    "Common": {
-      "AttributeBased": true,
-      "ReferencedTypes": true
+  "MetaTypes.Generator": {
+    "Generation": {
+      "BaseMetaTypes": true
     },
-    "EfCore": {
-      "DbContextBased": true,
-      "EntityBased": true
-    }
+    "EnabledVendors": ["EfCore"],
+    "VendorConfigs": {
+      "EfCore": {
+        "RequireBaseTypes": true,
+        "IncludeNavigationProperties": true,
+        "IncludeForeignKeys": true
+      }
+    },
+    "Discovery": {
+      "CrossAssembly": false,
+      "Methods": ["MetaTypes.Attribute", "MetaTypes.Reference", "EfCore.DbContextSet", "EfCore.TableAttribute"]
+    },
+    "EnableDiagnosticFiles": true
   }
 }
 ```
 
 This enables all EfCore features including:
 - DbContext entity scanning
-- Attribute-based entity detection on all types
+- Table attribute-based entity detection on all types
 - Cross-reference discovery
 - Diagnostic file generation
 
@@ -464,14 +478,15 @@ This enables all EfCore features including:
 
 ```xml
 <PropertyGroup>
-  <MetaTypeEfCoreDetection>true</MetaTypeEfCoreDetection>
-  <MetaTypeDiagnosticFiles>true</MetaTypeDiagnosticFiles>
+  <MetaTypesEnabledVendors>EfCore</MetaTypesEnabledVendors>
+  <MetaTypesDiagnosticFiles>true</MetaTypesDiagnosticFiles>
+  <MetaTypesDiscoveryMethods>MetaTypes.Attribute;EfCore.DbContextSet;EfCore.TableAttribute</MetaTypesDiscoveryMethods>
 </PropertyGroup>
 
 <ItemGroup>
-  <CompilerVisibleItemMetadata Include="MetaTypeConfig" MetadataName="DiscoveryMethod" />
-  <MetaTypeConfig Include="EfCore.DbContextBased" DiscoveryMethod="true" />
-  <MetaTypeConfig Include="EfCore.EntityBased" DiscoveryMethod="true" />
+  <CompilerVisibleItemMetadata Include="MetaTypesVendorConfig" MetadataName="VendorName" />
+  <CompilerVisibleItemMetadata Include="MetaTypesVendorConfig" MetadataName="RequireBaseTypes" />
+  <MetaTypesVendorConfig Include="EfCore" VendorName="EfCore" RequireBaseTypes="true" />
 </ItemGroup>
 ```
 
@@ -514,7 +529,7 @@ This enables all EfCore features including:
 **Check these common issues:**
 
 1. **Missing EfCore Reference**: Ensure `Microsoft.EntityFrameworkCore` is referenced
-2. **Configuration Disabled**: Check that `EfCoreDetection` is not set to `false`
+2. **Vendor Not Enabled**: Check that `"EfCore"` is included in `EnabledVendors` array
 3. **No Entities Found**: Verify that entities are marked with `[MetaType]` or discovered through DbContext
 4. **Build Issues**: Clean and rebuild the project
 
@@ -522,14 +537,16 @@ This enables all EfCore features including:
 Enable diagnostic files to see EfCore detection status:
 ```json
 {
-  "DiagnosticFiles": true
+  "MetaTypes.Generator": {
+    "EnableDiagnosticFiles": true
+  }
 }
 ```
 
 Look for lines like:
 ```
-EfCore Detection Enabled: True
-Discovery Methods: 4 (Common: 2, EfCore: 2)
+Enabled Vendors: [EfCore]
+Discovery Methods: EfCore.DbContextSet, EfCore.TableAttribute
 ```
 
 ### Incorrect Key Detection
