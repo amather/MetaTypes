@@ -1,14 +1,15 @@
+using MetaTypes.Generator.Common;
+using MetaTypes.Generator.Common.Generator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
-using System.Linq;
-using MetaTypes.Generator.Common;
-using MetaTypes.Generator.Common.Generator;
 
 namespace MetaTypes.Generator;
 
@@ -17,6 +18,12 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
+#if DEBUG
+        if (!Debugger.IsAttached)
+        {
+           // Debugger.Launch();
+        }
+#endif 
         // Get configuration from AdditionalFiles (JSON configuration)
         var configuration = context.AdditionalTextsProvider
             .Collect()

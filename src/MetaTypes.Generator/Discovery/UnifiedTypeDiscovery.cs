@@ -255,7 +255,6 @@ public static class UnifiedTypeDiscovery
                assemblyName.StartsWith("Microsoft.") ||
                assemblyName.StartsWith("mscorlib") ||
                assemblyName.StartsWith("netstandard") ||
-               assemblyName.StartsWith("Newtonsoft.") ||
                assemblyName.StartsWith("Microsoft.CodeAnalysis");
     }
 }

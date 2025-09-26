@@ -145,8 +145,8 @@ namespace MetaTypes.Generator.Common.Vendor.Statics.Generation
             
             // Get EfCore discovered entities with DbContext info (ONLY from DbContextSet discovery)
             var efCoreEntities = discoveredTypes
-                .Where(dt => dt.WasDiscoveredBy("EfCore.DbContextSet"))  // Specific to DbSet<T> discoveries only
-                .ToDictionary(dt => dt.TypeSymbol, dt => new {
+                .Where(static dt => dt.WasDiscoveredBy("EfCore.DbContextSet"))  // Specific to DbSet<T> discoveries only
+                .ToDictionary(static dt => dt.TypeSymbol, dt => new {
                     DbContextTypeName = dt.DiscoveryContexts.TryGetValue("DbContextType", out var ctxType) ? ctxType : "UnknownDbContext",
                     DbContextName = dt.DiscoveryContexts.TryGetValue("DbContextName", out var name) ? name : "UnknownContext"
                 });
