@@ -42,14 +42,14 @@ namespace MetaTypes.Generator.Common.Generator
         /// <summary>
         /// Gets vendor generators that are enabled based on configuration
         /// </summary>
-        public static IEnumerable<IVendorGenerator> GetEnabledVendorGenerators(string[]? enabledVendors)
+        public static IEnumerable<IVendorGenerator> GetEnabledVendorGenerators(List<string>? enabledVendors)
         {
             var allGenerators = GetVendorGenerators();
             
-            if (enabledVendors == null || enabledVendors.Length == 0)
+            if (enabledVendors == null || enabledVendors.Count == 0)
             {
                 // No vendors enabled
-                return Enumerable.Empty<IVendorGenerator>();
+                return [];
             }
 
             var enabledGenerators = new List<IVendorGenerator>();

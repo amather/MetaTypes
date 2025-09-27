@@ -1,7 +1,7 @@
 using Microsoft.CodeAnalysis;
 using MetaTypes.Abstractions;
 
-namespace MetaTypes.Generator.Common;
+namespace MetaTypes.Generator.Configuration;
 
 /// <summary>
 /// Default implementation of namespace handling using MetaTypes' superior approach.
@@ -24,7 +24,7 @@ public class AssemblyNameProvider
     /// 
     /// This follows MetaTypes' approach from MetaTypeSourceGenerator.cs lines 87-88.
     /// </summary>
-    public string GetTargetNamespace(Compilation compilation, MetaTypesGeneratorConfiguration config)
+    public string GetTargetNamespace(Compilation compilation, MetaTypesOptions config)
     {
         var assemblyName = compilation.AssemblyName ?? "UnknownAssembly";
         return GetTargetNamespace(assemblyName, config);
@@ -34,7 +34,7 @@ public class AssemblyNameProvider
     /// Gets the target namespace when assembly name is already known.
     /// Uses MetaTypes' logic: explicit namespace config override, or actual assembly name.
     /// </summary>
-    public string GetTargetNamespace(string assemblyName, MetaTypesGeneratorConfiguration config)
+    public string GetTargetNamespace(string assemblyName, MetaTypesOptions config)
     {
         // Use assembly name as namespace, or configured namespace override if provided
         // This is the exact MetaTypes logic from MetaTypeSourceGenerator.cs

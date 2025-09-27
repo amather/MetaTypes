@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using MetaTypes.Abstractions;
 
-namespace MetaTypes.Generator.Common;
+namespace MetaTypes.Generator.Configuration;
 
 /// <summary>
 /// Helper class for loading generator configuration from AnalyzerConfigOptions
@@ -13,17 +13,28 @@ public static class ConfigurationLoader
     /// <summary>
     /// Loads configuration from AdditionalFiles (JSON configuration)
     /// </summary>
-    public static MetaTypesGeneratorConfiguration LoadFromAdditionalFiles(
+    public static MetaTypesOptions LoadFromAdditionalFiles(
         ImmutableArray<Microsoft.CodeAnalysis.AdditionalText> additionalFiles,
         Microsoft.CodeAnalysis.Diagnostics.AnalyzerConfigOptionsProvider configProvider)
     {
-        // Find the MetaTypes configuration file
+        // Find the MetaTypes configuration file:
+        //
+        // we're looking for an AdditionalFile with a specific metadata key, e.g.:
+        //
+        // <ItemGroup>
+        //   <AdditionalFiles Include="metatypes.config.json" Type="MetaTypes.Generator.Options" />
+        //   <CompilerVisibleItemMetadata Include="AdditionalFiles" Metadata="Type" />
+        // </ItemGroup>
+        //
+        // So the project defines that the AdditionalFiles, including its `Type` attribute, is to 
+        // be made available/visible to the compiler and therefore the source generator.
+        //
+        // In here, we detect this and correspondingly load the configuration from that file.
+
         var configFile = additionalFiles.FirstOrDefault(file =>
         {
             var options = configProvider.GetOptions(file);
-            return (options.TryGetValue("build_metadata.AdditionalFiles.GeneratorConfiguration", out var type) ||
-                    options.TryGetValue("build_metadata.AdditionalFiles.Type", out type)) &&
-                   type == "MetaTypes.Generator.Options";
+            return options.TryGetValue("build_metadata.AdditionalFiles.Type", out var type) && type == "MetaTypes.Generator.Options";
         });
 
         if (configFile != null)
@@ -38,14 +49,14 @@ public static class ConfigurationLoader
         }
 
         // Fallback to default configuration
-        return new MetaTypesGeneratorConfiguration();
+        return new MetaTypesOptions();
     }
     
 
     /// <summary>
     /// Attempts to parse a JSON configuration string into MetaTypesGeneratorConfiguration
     /// </summary>
-    public static MetaTypesGeneratorConfiguration? ParseConfiguration(string? jsonContent)
+    public static MetaTypesOptions? ParseConfiguration(string? jsonContent)
     {
         if (string.IsNullOrWhiteSpace(jsonContent))
             return null;
@@ -59,12 +70,11 @@ public static class ConfigurationLoader
                 ReadCommentHandling = JsonCommentHandling.Skip
             };
             
-            var parsedConfig = JsonSerializer.Deserialize<MetaTypesGeneratorConfiguration>(jsonContent!, options);
+            var parsedConfig = JsonSerializer.Deserialize<MetaTypesOptions>(jsonContent!, options);
             return parsedConfig;
         }
         catch
         {
-            // Return null if parsing fails - generators should handle gracefully
             return null;
         }
     }

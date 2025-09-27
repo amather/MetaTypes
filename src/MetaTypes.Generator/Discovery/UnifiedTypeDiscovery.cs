@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis;
 using MetaTypes.Abstractions;
 using System.Collections.Concurrent;
 using System.Reflection;
+using MetaTypes.Generator.Configuration;
 
 namespace MetaTypes.Generator.Common;
 
@@ -23,7 +24,7 @@ public static class UnifiedTypeDiscovery
     /// <param name="compilation">The compilation context.</param>
     /// <param name="config">Discovery configuration.</param>
     /// <returns>Detailed discovery execution result with diagnostics.</returns>
-    public static DiscoveryExecutionResult GetDiscoveryResult(Compilation compilation, MetaTypesGeneratorConfiguration config)
+    public static DiscoveryExecutionResult GetDiscoveryResult(Compilation compilation, MetaTypesOptions config)
     {
         EnsureDiscoveryMethodsLoaded();
         

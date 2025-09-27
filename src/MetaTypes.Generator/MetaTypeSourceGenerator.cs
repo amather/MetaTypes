@@ -1,5 +1,6 @@
 using MetaTypes.Generator.Common;
 using MetaTypes.Generator.Common.Generator;
+using MetaTypes.Generator.Configuration;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -48,7 +49,7 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
             });
     }
 
-    private static void Execute(Compilation compilation, MetaTypesGeneratorConfiguration config, SourceProductionContext context)
+    private static void Execute(Compilation compilation, MetaTypesOptions config, SourceProductionContext context)
     {
         // Use the new plugin-based discovery system - all IDiscoveryMethod implementations are auto-discovered via reflection
         var discoveryResult = UnifiedTypeDiscovery.GetDiscoveryResult(compilation, config);
@@ -114,7 +115,7 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
 
     private static void GenerateBaseMetaTypes(
         IList<DiscoveredType> discoveredTypes,
-        MetaTypesGeneratorConfiguration config,
+        MetaTypesOptions config,
         SourceProductionContext context,
         Compilation compilation)
     {
@@ -174,7 +175,7 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
 
     private static void ExecuteVendorGenerators(
         Compilation compilation,
-        MetaTypesGeneratorConfiguration config,
+        MetaTypesOptions config,
         IList<DiscoveredType> discoveredTypes,
         SourceProductionContext context)
     {
