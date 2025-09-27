@@ -8,7 +8,7 @@ namespace MetaTypes.Generator.Common;
 /// This is the exact same logic used by MetaTypes generators - respects real assembly names
 /// or uses configured namespace overrides.
 /// </summary>
-public class AssemblyNameProvider : IAssemblyNameProvider
+public class AssemblyNameProvider 
 {
     private static readonly Lazy<AssemblyNameProvider> _instance = new(() => new AssemblyNameProvider());
     
@@ -24,7 +24,7 @@ public class AssemblyNameProvider : IAssemblyNameProvider
     /// 
     /// This follows MetaTypes' approach from MetaTypeSourceGenerator.cs lines 87-88.
     /// </summary>
-    public string GetTargetNamespace(Compilation compilation, IGeneratorConfiguration config)
+    public string GetTargetNamespace(Compilation compilation, MetaTypesGeneratorConfiguration config)
     {
         var assemblyName = compilation.AssemblyName ?? "UnknownAssembly";
         return GetTargetNamespace(assemblyName, config);
@@ -34,7 +34,7 @@ public class AssemblyNameProvider : IAssemblyNameProvider
     /// Gets the target namespace when assembly name is already known.
     /// Uses MetaTypes' logic: explicit namespace config override, or actual assembly name.
     /// </summary>
-    public string GetTargetNamespace(string assemblyName, IGeneratorConfiguration config)
+    public string GetTargetNamespace(string assemblyName, MetaTypesGeneratorConfiguration config)
     {
         // Use assembly name as namespace, or configured namespace override if provided
         // This is the exact MetaTypes logic from MetaTypeSourceGenerator.cs

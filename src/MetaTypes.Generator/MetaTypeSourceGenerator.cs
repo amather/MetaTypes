@@ -21,7 +21,7 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
 #if DEBUG
         if (!Debugger.IsAttached)
         {
-           // Debugger.Launch();
+            //Debugger.Launch();
         }
 #endif 
         // Get configuration from AdditionalFiles (JSON configuration)
@@ -32,7 +32,7 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
             {
                 var (additionalFiles, configProvider) = combined;
                 var fullConfig = ConfigurationLoader.LoadFromAdditionalFiles(additionalFiles, configProvider);
-                return fullConfig.BaseGenerator!;
+                return fullConfig;
             });
 
         // Combine compilation with configuration
@@ -48,10 +48,10 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
             });
     }
 
-    private static void Execute(Compilation compilation, BaseGeneratorOptions config, SourceProductionContext context)
+    private static void Execute(Compilation compilation, MetaTypesGeneratorConfiguration config, SourceProductionContext context)
     {
         // Use the new plugin-based discovery system - all IDiscoveryMethod implementations are auto-discovered via reflection
-        var discoveryResult = UnifiedTypeDiscovery.GetDiscoveryResult(compilation, config.Discovery);
+        var discoveryResult = UnifiedTypeDiscovery.GetDiscoveryResult(compilation, config);
         var discoveredTypes = discoveryResult.DiscoveredTypes;
         
         // Always add diagnostic file for debugging configuration
@@ -67,10 +67,9 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
 // Config Keys Found: {config.DebugInfo}
 //
 // ORCHESTRATED CONFIGURATION:
-// - BaseMetaTypes: {config.Generation.BaseMetaTypes}
-// - Discovery.Syntax: {config.Discovery.Syntax}
-// - Discovery.CrossAssembly: {config.Discovery.CrossAssembly}
-// - Discovery.Methods: [{string.Join(", ", config.Discovery.Methods.Methods)}]
+// - GenerateBaseMetaTypes: {config.GenerateBaseMetaTypes}
+// - DiscoverCrossAssembly: {config.DiscoverCrossAssembly}
+// - DiscoverMethods: [{string.Join(", ", config.DiscoverMethods)}]
 //
 // DISCOVERY EXECUTION:
 // - Success: {discoveryResult.Success}
@@ -93,7 +92,7 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
         }
 
         // Generate base MetaTypes if configured
-        if (config.Generation.BaseMetaTypes)
+        if (config.GenerateBaseMetaTypes)
         {
             GenerateBaseMetaTypes(discoveredTypes, config, context, compilation);
         }
@@ -102,7 +101,7 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
             // Add a diagnostic to show that types were discovered but base generation was skipped
             context.AddSource("_BaseGenerationSkipped.g.cs", $@"
 // Base MetaType generation skipped by configuration
-// BaseMetaTypes = {config.Generation.BaseMetaTypes}
+// GenerateBaseMetaTypes = {config.GenerateBaseMetaTypes}
 // Discovered types that were NOT generated: {discoveredTypes.Count}
 // Types: {string.Join(", ", discoveredTypes.Select(dt => dt.TypeSymbol.Name))}
 // Configure BaseMetaTypes = true to generate base classes with this generator
@@ -115,11 +114,11 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
 
     private static void GenerateBaseMetaTypes(
         IList<DiscoveredType> discoveredTypes,
-        BaseGeneratorOptions config,
+        MetaTypesGeneratorConfiguration config,
         SourceProductionContext context,
         Compilation compilation)
     {
-        if (config.Discovery.CrossAssembly)
+        if (config.DiscoverCrossAssembly)
         {
             // Cross-assembly mode: Generate ONE unified provider in the target namespace (where generator runs)
             var allTypeSymbols = discoveredTypes.Select(dt => dt.TypeSymbol).ToList();
@@ -175,7 +174,7 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
 
     private static void ExecuteVendorGenerators(
         Compilation compilation,
-        BaseGeneratorOptions config,
+        MetaTypesGeneratorConfiguration config,
         IList<DiscoveredType> discoveredTypes,
         SourceProductionContext context)
     {
@@ -220,7 +219,7 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
                     TargetNamespace = targetNamespace,
                     Properties = new Dictionary<string, string>
                     {
-                        ["BaseMetaTypesGenerated"] = config.Generation.BaseMetaTypes.ToString()
+                        ["BaseMetaTypesGenerated"] = config.GenerateBaseMetaTypes.ToString()
                     }
                 };
 

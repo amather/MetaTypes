@@ -18,36 +18,24 @@ public static class UnifiedTypeDiscovery
     private static bool _initialized = false;
     
     /// <summary>
-    /// Discovers types using configuration-driven discovery methods via auto-discovered plugins.
-    /// </summary>
-    /// <param name="compilation">The compilation context.</param>
-    /// <param name="config">Discovery configuration.</param>
-    /// <returns>Unified list of discovered types with discovery metadata.</returns>
-    public static IList<DiscoveredType> DiscoverTypes(Compilation compilation, IDiscoveryConfig config)
-    {
-        var result = GetDiscoveryResult(compilation, config);
-        return result.DiscoveredTypes;
-    }
-    
-    /// <summary>
     /// Gets detailed discovery results including warnings and errors from the auto-discovered plugin system.
     /// </summary>
     /// <param name="compilation">The compilation context.</param>
     /// <param name="config">Discovery configuration.</param>
     /// <returns>Detailed discovery execution result with diagnostics.</returns>
-    public static DiscoveryExecutionResult GetDiscoveryResult(Compilation compilation, IDiscoveryConfig config)
+    public static DiscoveryExecutionResult GetDiscoveryResult(Compilation compilation, MetaTypesGeneratorConfiguration config)
     {
         EnsureDiscoveryMethodsLoaded();
         
         // Filter methods based on cross-assembly requirements
-        var configuredMethods = config.Methods.Methods;
+        var configuredMethods = config.DiscoverMethods;
         
-        if (!config.CrossAssembly)
+        if (!config.DiscoverCrossAssembly)
         {
             // Only include methods that don't require cross-assembly discovery
             configuredMethods = configuredMethods
                 .Where(methodId => !_discoveredMethods.TryGetValue(methodId, out var method) || !method.RequiresCrossAssembly)
-                .ToArray();
+                .ToList();
         }
         
         return ExecuteDiscoveryMethods(configuredMethods, compilation);
@@ -127,14 +115,14 @@ public static class UnifiedTypeDiscovery
     /// <summary>
     /// Executes the configured discovery methods and returns results.
     /// </summary>
-    private static DiscoveryExecutionResult ExecuteDiscoveryMethods(string[] configuredMethods, Compilation compilation)
+    private static DiscoveryExecutionResult ExecuteDiscoveryMethods(List<string> configuredMethods, Compilation compilation)
     {
         var resolved = new List<IDiscoveryMethod>();
         var warnings = new List<string>();
         var errors = new List<string>();
         
         // Resolve configured methods
-        foreach (var methodId in configuredMethods ?? Array.Empty<string>())
+        foreach (var methodId in configuredMethods ?? [])
         {
             if (string.IsNullOrWhiteSpace(methodId))
             {

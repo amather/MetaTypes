@@ -1,24 +1,19 @@
 {
-  "MetaTypes.Generator": {
-    "EnableDiagnosticFiles": true,
-    "Generation": {
-      "BaseMetaTypes": false
-    },
-    "Discovery": {
-      "Syntax": true,
-      "CrossAssembly": true,
-      "Methods": [
-        "EfCore.TableAttribute",
-        "EfCore.DbContextSet"
-      ]
-    },
-    "EnabledVendors": ["EfCore"],
-    "VendorConfigs": {
-      "EfCore": {
-        "RequireBaseTypes": true,
-        "IncludeNavigationProperties": true,
-        "IncludeForeignKeys": true
-      }
+  "EnableDiagnosticFiles": true,
+  "GenerateBaseMetaTypes": true,
+  "DiscoverCrossAssembly": true,
+  "DiscoverMethods": [
+    "EfCore.TableAttribute",
+    "EfCore.DbContextSet"
+  ],
+  "EnabledVendors": [
+    "EfCore"
+  ],
+  "VendorConfigs": {
+    "EfCore": {
+      "RequireBaseTypes": true,
+      "IncludeNavigationProperties": true,
+      "IncludeForeignKeys": true
     }
   }
 }

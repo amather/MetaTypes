@@ -32,50 +32,15 @@ public static class ConfigurationLoader
             var config = ParseConfiguration(content);
             if (config != null)
             {
-                // Merge top-level GeneratedNamespace into generator sections if they don't have their own
-                MergeGeneratedNamespaces(config);
-                
-                // Add debug info showing successful load
-                if (config.BaseGenerator != null)
-                    config.BaseGenerator.DebugInfo = $"JSON_CONFIG_LOADED_FROM_{configFile.Path}";
+                config.DebugInfo = $"JSON_CONFIG_LOADED_FROM_{configFile.Path}";
                 return config;
             }
         }
 
         // Fallback to default configuration
-        var defaultConfig = GetDefaultConfiguration();
-        if (defaultConfig.BaseGenerator != null)
-            defaultConfig.BaseGenerator.DebugInfo = "JSON_CONFIG_NOT_FOUND_USING_DEFAULTS";
-        return defaultConfig;
+        return new MetaTypesGeneratorConfiguration();
     }
     
-    /// <summary>
-    /// Loads configuration for a specific generator by name
-    /// </summary>
-    public static TConfig? LoadGeneratorConfig<TConfig>(
-        ImmutableArray<Microsoft.CodeAnalysis.AdditionalText> additionalFiles,
-        Microsoft.CodeAnalysis.Diagnostics.AnalyzerConfigOptionsProvider configProvider,
-        string generatorName) where TConfig : class, IGeneratorConfigSection
-    {
-        var fullConfig = LoadFromAdditionalFiles(additionalFiles, configProvider);
-        
-        return generatorName switch
-        {
-            "MetaTypes.Generator" => fullConfig.BaseGenerator as TConfig,
-            _ => null
-        };
-    }
-    
-    /// <summary>
-    /// Merges top-level GeneratedNamespace into generator sections that don't have their own
-    /// </summary>
-    private static void MergeGeneratedNamespaces(MetaTypesGeneratorConfiguration config)
-    {
-        if (string.IsNullOrEmpty(config.GeneratedNamespace)) return;
-        
-        if (config.BaseGenerator?.GeneratedNamespace == null)
-            config.BaseGenerator!.GeneratedNamespace = config.GeneratedNamespace;
-    }
 
     /// <summary>
     /// Attempts to parse a JSON configuration string into MetaTypesGeneratorConfiguration
@@ -95,12 +60,7 @@ public static class ConfigurationLoader
             };
             
             var parsedConfig = JsonSerializer.Deserialize<MetaTypesGeneratorConfiguration>(jsonContent!, options);
-            if (parsedConfig == null)
-                return null;
-                
-            // Merge with defaults to ensure all required properties are set
-            var defaultConfig = GetDefaultConfiguration();
-            return MergeConfigurations(defaultConfig, parsedConfig);
+            return parsedConfig;
         }
         catch
         {
@@ -109,56 +69,4 @@ public static class ConfigurationLoader
         }
     }
     
-    /// <summary>
-    /// Merges parsed configuration with defaults, preferring values from parsed config
-    /// </summary>
-    private static MetaTypesGeneratorConfiguration MergeConfigurations(
-        MetaTypesGeneratorConfiguration defaultConfig,
-        MetaTypesGeneratorConfiguration parsedConfig)
-    {
-        // Merge BaseGenerator settings
-        if (parsedConfig.BaseGenerator != null && defaultConfig.BaseGenerator != null)
-        {
-            // Preserve parsed values, use defaults for missing ones
-            if (parsedConfig.BaseGenerator.Discovery == null)
-                parsedConfig.BaseGenerator.Discovery = defaultConfig.BaseGenerator.Discovery;
-            if (parsedConfig.BaseGenerator.Generation == null)
-                parsedConfig.BaseGenerator.Generation = defaultConfig.BaseGenerator.Generation;
-        }
-        else if (parsedConfig.BaseGenerator == null)
-        {
-            parsedConfig.BaseGenerator = defaultConfig.BaseGenerator;
-        }
-        
-        return parsedConfig;
-    }
-    
-    
-    /// <summary>
-    /// Gets default configuration when no config file is found
-    /// </summary>
-    public static MetaTypesGeneratorConfiguration GetDefaultConfiguration()
-    {
-        return new MetaTypesGeneratorConfiguration
-        {
-            BaseGenerator = new BaseGeneratorOptions
-            {
-                EnableDiagnosticFiles = true,
-                
-                // New orchestrated configuration - generators should NOT generate base types by default
-                // Each generator must explicitly opt-in if they want to generate base types
-                Generation = new GenerationConfig { BaseMetaTypes = false },
-                Discovery = new DiscoveryConfig 
-                { 
-                    Syntax = true, 
-                    CrossAssembly = false,  // Default to syntax-only, require explicit opt-in for cross-assembly
-                    Methods = new DiscoveryMethodsConfig
-                    {
-                        Methods = new[] { "MetaTypes.Attribute", "MetaTypes.Reference" }
-                    }
-                }
-            }
-        };
-    }
-
 }
