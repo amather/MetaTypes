@@ -1,7 +1,8 @@
-using MetaTypes.Generator.Common;
 using MetaTypes.Generator.Common.Generator;
 using MetaTypes.Generator.Configuration;
 using MetaTypes.Generator.Discovery;
+using MetaTypes.Generator.Generator;
+using MetaTypes.Generator.Vendor.MetaTypes.Generation;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -52,7 +53,7 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
 
     private static void Execute(Compilation compilation, MetaTypesOptions config, SourceProductionContext context)
     {
-        // Use the new plugin-based discovery system - all IDiscoveryMethod implementations are auto-discovered via reflection
+        // discover types based on configuration
         var discoveryResult = TypeDiscovery.RunTypeDiscovery(compilation, config);
         var discoveredTypes = discoveryResult.DiscoveredTypes;
         
@@ -91,14 +92,14 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
             return;
         }
 
-        // Generate base MetaTypes if configured
+        // generate base MetaTypes if configured
         if (config.GenerateBaseMetaTypes)
         {
             GenerateBaseMetaTypes(discoveredTypes, config, context, compilation);
         }
         else
         {
-            // Add a diagnostic to show that types were discovered but base generation was skipped
+            // add a diagnostic to show that types were discovered but base generation was skipped
             context.AddSource("_BaseGenerationSkipped.g.cs", $@"
 // Base MetaType generation skipped by configuration
 // GenerateBaseMetaTypes = {config.GenerateBaseMetaTypes}
@@ -108,7 +109,7 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
 ");
         }
 
-        // Always execute vendor generators regardless of base generation
+        // always execute vendor generators regardless of base generation
         ExecuteVendorGenerators(compilation, config, discoveredTypes, context);
     }
 
@@ -118,58 +119,27 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
         SourceProductionContext context,
         Compilation compilation)
     {
-        if (config.DiscoverCrossAssembly)
+
+        var targetNamespace = NamespaceNameProvider.GetTargetNamespace(compilation, config);
+        var fileNamespace = targetNamespace; // targetNamespace.Replace(".", "");
+
+        var allTypeSymbols = discoveredTypes.Select(dt => dt.TypeSymbol).ToList();
+
+        // generate single unified MetaTypes provider with all discovered types
+        var providerSource = BaseMetaTypeGenerator.GenerateMetaTypesProvider(targetNamespace, allTypeSymbols);
+        context.AddSource($"{fileNamespace}.MetaTypes.g.cs", providerSource);
+
+        // generate DI extension method
+        var diExtensionsSource = BaseMetaTypeGenerator.GenerateServiceCollectionExtensions(targetNamespace);
+        context.AddSource($"{fileNamespace}.MetaTypesServiceCollectionExtensions.g.cs", diExtensionsSource);
+
+        // generate individual MetaType classes in the target namespace
+        foreach (var typeSymbol in allTypeSymbols)
         {
-            // Cross-assembly mode: Generate ONE unified provider in the target namespace (where generator runs)
-            var allTypeSymbols = discoveredTypes.Select(dt => dt.TypeSymbol).ToList();
-            var targetNamespace = AssemblyNameProvider.Instance.GetTargetNamespace(compilation, config); // Use compilation assembly as target
-            
-            // Generate single unified MetaTypes provider with all discovered types
-            var providerSource = CoreMetaTypeGenerator.GenerateMetaTypesProvider(targetNamespace, allTypeSymbols);
-            context.AddSource($"{targetNamespace.Replace(".", "")}MetaTypes.g.cs", providerSource);
-            
-            // Generate single DI extension method for the target namespace
-            var diExtensionsSource = CoreMetaTypeGenerator.GenerateServiceCollectionExtensions(targetNamespace);
-            context.AddSource($"{targetNamespace.Replace(".", "")}MetaTypesServiceCollectionExtensions.g.cs", diExtensionsSource);
-
-            // Generate individual MetaType classes in the target namespace
-            foreach (var typeSymbol in allTypeSymbols)
-            {
-                var metaTypeSource = CoreMetaTypeGenerator.GenerateMetaTypeClass(typeSymbol, targetNamespace, allTypeSymbols, useCrossAssemblyReferences: true);
-                context.AddSource($"{targetNamespace.Replace(".", "")}_{typeSymbol.Name}MetaType.g.cs", metaTypeSource);
-            }
+            var metaTypeSource = BaseMetaTypeGenerator.GenerateMetaTypeClass(typeSymbol, targetNamespace, allTypeSymbols, useCrossAssemblyReferences: true);
+            context.AddSource($"{fileNamespace}_{typeSymbol.Name}MetaType.g.cs", metaTypeSource);
         }
-        else
-        {
-            // Single-project mode: Group by source assembly and generate separate providers
-            var typesByAssembly = discoveredTypes.GroupBy(dt => dt.TypeSymbol.ContainingAssembly.Name).ToList();
 
-            foreach (var assemblyGroup in typesByAssembly)
-            {
-                var assemblyName = assemblyGroup.Key;
-                var typesInAssembly = assemblyGroup.Select(dt => dt.TypeSymbol).ToList();
-
-                // Use MetaTypes' shared assembly name logic via AssemblyNameProvider
-                var targetNamespace = AssemblyNameProvider.Instance.GetTargetNamespace(assemblyName, config);
-                
-                // Generate MetaTypes provider class for this assembly
-                var providerSource = CoreMetaTypeGenerator.GenerateMetaTypesProvider(targetNamespace, typesInAssembly);
-                context.AddSource($"{assemblyName}MetaTypes.g.cs", providerSource);
-                
-                // Generate DI extension methods for this assembly
-                var diExtensionsSource = CoreMetaTypeGenerator.GenerateServiceCollectionExtensions(targetNamespace);
-                context.AddSource($"{assemblyName}MetaTypesServiceCollectionExtensions.g.cs", diExtensionsSource);
-
-                // Generate individual MetaType classes for this assembly
-                // Pass all discovered types for cross-reference detection
-                var allDiscoveredTypeSymbols = discoveredTypes.Select(dt => dt.TypeSymbol).ToList();
-                foreach (var typeSymbol in typesInAssembly)
-                {
-                    var metaTypeSource = CoreMetaTypeGenerator.GenerateMetaTypeClass(typeSymbol, targetNamespace, allDiscoveredTypeSymbols, useCrossAssemblyReferences: false);
-                    context.AddSource($"{assemblyName}_{typeSymbol.Name}MetaType.g.cs", metaTypeSource);
-                }
-            }
-        }
     }
 
     private static void ExecuteVendorGenerators(
@@ -212,7 +182,7 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
                 
                 // Create context for vendor generator
                 // Use the compilation assembly name as the target namespace (where the generator runs)
-                var targetNamespace = AssemblyNameProvider.Instance.GetTargetNamespace(compilation, config);
+                var targetNamespace = NamespaceNameProvider.GetTargetNamespace(compilation, config);
                 var vendorContext = new GeneratorContext
                 {
                     EnableDiagnostics = config.EnableDiagnosticFiles,

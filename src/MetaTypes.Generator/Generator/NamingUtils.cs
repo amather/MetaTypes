@@ -35,7 +35,7 @@ public static class NamingUtils
             return input;
         
         // Split on common separators: dots, hyphens, underscores, spaces
-        var segments = input.Split(new[] { '.', '-', '_', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        var segments = input.Split(['.', '-', '_', ' '], StringSplitOptions.RemoveEmptyEntries);
         
         var result = new StringBuilder();
         foreach (var segment in segments)

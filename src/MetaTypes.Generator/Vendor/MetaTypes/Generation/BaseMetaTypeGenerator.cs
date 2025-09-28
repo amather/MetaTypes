@@ -4,26 +4,26 @@ using System.Linq;
 using System.Text;
 using MetaTypes.Generator.Common.Generator;
 
-namespace MetaTypes.Generator.Common;
+namespace MetaTypes.Generator.Vendor.MetaTypes.Generation;
 
 /// <summary>
 /// Shared logic for generating core MetaType classes and provider.
 /// Used by both the main generator and extension generators to ensure 
 /// core files are always available.
 /// </summary>
-public static class CoreMetaTypeGenerator
+public static class BaseMetaTypeGenerator
 {
     /// <summary>
     /// Generates the MetaTypes provider class that implements IMetaTypeProvider.
     /// </summary>
-    public static string GenerateMetaTypesProvider(string assemblyNamespace, IEnumerable<INamedTypeSymbol> typeSymbols)
+    public static string GenerateMetaTypesProvider(string targetNamespace, IEnumerable<INamedTypeSymbol> typeSymbols)
     {
         var sb = new StringBuilder();
         
         sb.AppendLine("#nullable enable");
         sb.AppendLine("using MetaTypes.Abstractions;");
         sb.AppendLine();
-        sb.AppendLine($"namespace {assemblyNamespace};");
+        sb.AppendLine($"namespace {targetNamespace};");
         sb.AppendLine();
         sb.AppendLine("public partial class MetaTypes : IMetaTypeProvider");
         sb.AppendLine("{");
@@ -46,7 +46,7 @@ public static class CoreMetaTypeGenerator
     /// <summary>
     /// Generates the DI extension class with target-namespace-specific registration methods.
     /// </summary>
-    public static string GenerateServiceCollectionExtensions(string assemblyNamespace)
+    public static string GenerateServiceCollectionExtensions(string targetNamespace)
     {
         var sb = new StringBuilder();
         
@@ -54,22 +54,22 @@ public static class CoreMetaTypeGenerator
         sb.AppendLine("using Microsoft.Extensions.DependencyInjection;");
         sb.AppendLine("using MetaTypes.Abstractions;");
         sb.AppendLine();
-        sb.AppendLine($"namespace {assemblyNamespace};");
+        sb.AppendLine($"namespace {targetNamespace};");
         sb.AppendLine();
         sb.AppendLine("/// <summary>");
-        sb.AppendLine($"/// DI extension methods for MetaTypes generated in {assemblyNamespace} namespace.");
+        sb.AppendLine($"/// DI extension methods for MetaTypes");
         sb.AppendLine("/// </summary>");
         sb.AppendLine("public static class MetaTypesServiceCollectionExtensions");
         sb.AppendLine("{");
         
         // Generate the main AddMetaTypes method
-        var methodName = NamingUtils.ToAddMetaTypesMethodName(assemblyNamespace);
+        var methodName = NamingUtils.ToAddMetaTypesMethodName(targetNamespace);
         sb.AppendLine("    /// <summary>");
-        sb.AppendLine($"    /// Registers all MetaTypes from the {assemblyNamespace} namespace.");
+        sb.AppendLine($"    /// Registers all MetaTypes from the {targetNamespace} namespace.");
         sb.AppendLine("    /// </summary>");
         sb.AppendLine($"    public static IServiceCollection {methodName}(this IServiceCollection services)");
         sb.AppendLine("    {");
-        sb.AppendLine($"        return services.AddMetaTypes<{assemblyNamespace}.MetaTypes>();");
+        sb.AppendLine($"        return services.AddMetaTypes<{targetNamespace}.MetaTypes>();");
         sb.AppendLine("    }");
         
         sb.AppendLine("}");
@@ -80,7 +80,7 @@ public static class CoreMetaTypeGenerator
     /// <summary>
     /// Generates a complete MetaType class for the given type symbol.
     /// </summary>
-    public static string GenerateMetaTypeClass(INamedTypeSymbol typeSymbol, string assemblyNamespace, IList<INamedTypeSymbol>? discoveredTypes = null, bool useCrossAssemblyReferences = false)
+    public static string GenerateMetaTypeClass(INamedTypeSymbol typeSymbol, string targetNamespace, IList<INamedTypeSymbol>? discoveredTypes = null, bool useCrossAssemblyReferences = false)
     {
         var sb = new StringBuilder();
         
@@ -88,7 +88,7 @@ public static class CoreMetaTypeGenerator
         sb.AppendLine("using System.Linq.Expressions;");
         sb.AppendLine("using MetaTypes.Abstractions;");
         sb.AppendLine();
-        sb.AppendLine($"namespace {assemblyNamespace};");
+        sb.AppendLine($"namespace {targetNamespace};");
         sb.AppendLine();
         // Static types cannot be used as type arguments, so only implement the generic interface for non-static types
         var interfaceDeclaration = typeSymbol.IsStatic 
@@ -191,7 +191,7 @@ public static class CoreMetaTypeGenerator
         sb.AppendLine();
         foreach (var property in properties)
         {
-            sb.AppendLine(GenerateMetaTypeMemberClass(typeSymbol, property, discoveredTypes, assemblyNamespace, useCrossAssemblyReferences));
+            sb.AppendLine(GenerateMetaTypeMemberClass(typeSymbol, property, discoveredTypes, targetNamespace, useCrossAssemblyReferences));
             sb.AppendLine();
         }
 
