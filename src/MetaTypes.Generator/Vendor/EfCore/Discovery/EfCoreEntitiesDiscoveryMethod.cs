@@ -1,6 +1,6 @@
+using MetaTypes.Generator.Discovery;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using MetaTypes.Generator.Common;
 
 namespace MetaTypes.Generator.Common.Vendor.EfCore.Discovery;
 
@@ -15,8 +15,6 @@ public class EfCoreEntitiesDiscoveryMethod : IDiscoveryMethod
     public string Description => "Discovers EF Core entity types with [Table] attribute via syntax analysis";
     
     public bool RequiresCrossAssembly => false;
-    
-    public bool CanRun(Compilation compilation) => true;
     
     public IEnumerable<DiscoveredType> Discover(Compilation compilation)
     {
@@ -36,7 +34,7 @@ public class EfCoreEntitiesDiscoveryMethod : IDiscoveryMethod
                         {
                             TypeSymbol = typeSymbol,
                             Source = DiscoverySource.Syntax,
-                            DiscoveredBy = new[] { Identifier },
+                            DiscoveredBy = [ Identifier ],
                             DiscoveryContexts = { [Identifier] = "EF Core [Table] attribute via syntax" }
                         });
                     }

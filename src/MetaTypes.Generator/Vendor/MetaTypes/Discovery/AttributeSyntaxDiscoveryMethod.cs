@@ -1,21 +1,20 @@
+using MetaTypes.Generator.Discovery;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace MetaTypes.Generator.Common;
+namespace MetaTypes.Generator.Vendor.MetaTypes.Discovery;
 
 /// <summary>
 /// Discovery method that finds types with [MetaType] attribute via syntax analysis.
 /// Scans syntax trees in the current compilation for attribute decorations.
 /// </summary>
-public class AttributesDiscoveryMethod : IDiscoveryMethod
+public class AttributeSyntaxDiscoveryMethod : IDiscoveryMethod
 {
-    public string Identifier => "MetaTypes.Attribute";
+    public string Identifier => "MetaTypes.Attribute.Syntax";
     
-    public string Description => "Discovers types with [MetaType] attribute via syntax analysis";
+    public string Description => "Discovers types with [MetaType] attribute in the current compilation";
     
     public bool RequiresCrossAssembly => false;
-    
-    public bool CanRun(Compilation compilation) => true;
     
     public IEnumerable<DiscoveredType> Discover(Compilation compilation)
     {
@@ -35,7 +34,7 @@ public class AttributesDiscoveryMethod : IDiscoveryMethod
                         {
                             TypeSymbol = typeSymbol,
                             Source = DiscoverySource.Syntax,
-                            DiscoveredBy = new[] { Identifier },
+                            DiscoveredBy = [ Identifier ],
                             DiscoveryContexts = { [Identifier] = "MetaType attribute via syntax" }
                         });
                     }

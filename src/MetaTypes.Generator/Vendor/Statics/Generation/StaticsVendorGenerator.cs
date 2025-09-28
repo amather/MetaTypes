@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using MetaTypes.Generator.Common.Generator;
+using MetaTypes.Generator.Discovery;
 
 namespace MetaTypes.Generator.Common.Vendor.Statics.Generation
 {

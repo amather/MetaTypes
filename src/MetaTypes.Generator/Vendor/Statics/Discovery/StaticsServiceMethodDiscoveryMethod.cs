@@ -1,6 +1,6 @@
+using MetaTypes.Generator.Discovery;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using MetaTypes.Generator.Common;
 
 namespace MetaTypes.Generator.Common.Vendor.Statics.Discovery;
 
@@ -15,8 +15,6 @@ public class StaticsServiceMethodDiscoveryMethod : IDiscoveryMethod
     public string Description => "Discovers static classes with static methods having StaticsServiceMethodAttribute";
     
     public bool RequiresCrossAssembly => false; // Supports both modes
-    
-    public bool CanRun(Compilation compilation) => true;
     
     public IEnumerable<DiscoveredType> Discover(Compilation compilation)
     {
@@ -52,7 +50,7 @@ public class StaticsServiceMethodDiscoveryMethod : IDiscoveryMethod
                         {
                             TypeSymbol = typeSymbol,
                             Source = DiscoverySource.Syntax,
-                            DiscoveredBy = new[] { Identifier },
+                            DiscoveredBy = [ Identifier ],
                             DiscoveryContexts = { [Identifier] = "Static class with StaticsServiceMethodAttribute via syntax" }
                         });
                     }
@@ -80,7 +78,7 @@ public class StaticsServiceMethodDiscoveryMethod : IDiscoveryMethod
                 {
                     TypeSymbol = typeSymbol,
                     Source = DiscoverySource.Referenced,
-                    DiscoveredBy = new[] { Identifier },
+                    DiscoveredBy = [ Identifier ],
                     DiscoveryContexts = { [Identifier] = "Static class with StaticsServiceMethodAttribute via assembly metadata" }
                 });
             }

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text.Json;
+using MetaTypes.Generator.Discovery;
 using Microsoft.CodeAnalysis;
 
 namespace MetaTypes.Generator.Common.Generator

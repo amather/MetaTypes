@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.CodeAnalysis;
 using MetaTypes.Generator.Common.Generator;
+using MetaTypes.Generator.Discovery;
 
 namespace MetaTypes.Generator.Common.Vendor.EfCore.Generation
 {

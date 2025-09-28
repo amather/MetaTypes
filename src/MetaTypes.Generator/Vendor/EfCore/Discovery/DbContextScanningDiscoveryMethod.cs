@@ -1,6 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using MetaTypes.Generator.Common;
+using MetaTypes.Generator.Discovery;
 
 namespace MetaTypes.Generator.Common.Vendor.EfCore.Discovery;
 
@@ -15,8 +15,6 @@ public class DbContextScanningDiscoveryMethod : IDiscoveryMethod
     public string Description => "Discovers EF Core entity types by scanning DbContext DbSet properties";
     
     public bool RequiresCrossAssembly => true; // May need to look at referenced DbContexts
-    
-    public bool CanRun(Compilation compilation) => true;
     
     public IEnumerable<DiscoveredType> Discover(Compilation compilation)
     {
@@ -132,7 +130,7 @@ public class DbContextScanningDiscoveryMethod : IDiscoveryMethod
                     {
                         TypeSymbol = entityType,
                         Source = DiscoverySource.Referenced, // DbContext scanning is considered referenced
-                        DiscoveredBy = new[] { Identifier },
+                        DiscoveredBy = [ Identifier ],
                         DiscoveryContexts = { 
                             [Identifier] = $"DbSet<{entityType.Name}> in {dbContextType.Name}",
                             ["DbContextType"] = dbContextType.ToDisplayString(),

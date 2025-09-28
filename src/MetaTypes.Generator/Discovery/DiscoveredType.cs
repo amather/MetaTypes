@@ -1,6 +1,6 @@
 using Microsoft.CodeAnalysis;
 
-namespace MetaTypes.Generator.Common;
+namespace MetaTypes.Generator.Discovery;
 
 /// <summary>
 /// Discovery source indicates how a type was discovered.
@@ -34,11 +34,11 @@ public class DiscoveredType
     /// When aggregated, this represents the primary source, with preference for syntax discovery.
     /// </summary>
     public DiscoverySource Source { get; set; }
-    
+
     /// <summary>
     /// All discovery methods that found this type (e.g., ["MetaTypes.Attribute", "EfCore.TableAttribute"]).
     /// </summary>
-    public string[] DiscoveredBy { get; set; } = null!;
+    public List<string> DiscoveredBy { get; set; } = [];
     
     /// <summary>
     /// Additional context about the discovery methods used, keyed by discovery method identifier.

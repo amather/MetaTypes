@@ -3,7 +3,7 @@
   "GenerateBaseMetaTypes": true,
   "DiscoverCrossAssembly": false,
   "DiscoverMethods": [
-    "MetaTypes.Attribute",
+    "MetaTypes.Attribute.Syntax",
     "Statics.ServiceMethod"
   ],
   "EnabledVendors": [

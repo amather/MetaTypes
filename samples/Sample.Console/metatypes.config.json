@@ -3,7 +3,7 @@
   "GenerateBaseMetaTypes": true,
   "DiscoverCrossAssembly": true,
   "DiscoverMethods": [
-    "MetaTypes.Attribute",
-    "MetaTypes.Reference"
+    "MetaTypes.Attribute.Syntax",
+    "MetaTypes.Attribute.Reference"
   ]
 }

@@ -1,48 +1,46 @@
+using MetaTypes.Generator.Discovery;
 using Microsoft.CodeAnalysis;
 
-namespace MetaTypes.Generator.Common;
+namespace MetaTypes.Generator.Vendor.MetaTypes.Discovery;
 
 /// <summary>
 /// Discovery method that finds types with [MetaType] attribute from referenced assemblies.
 /// Scans assembly metadata to find pre-compiled types with MetaType attributes.
 /// </summary>
-public class ReferencesDiscoveryMethod : IDiscoveryMethod
+public class AttributeReferenceDiscoveryMethod : IDiscoveryMethod
 {
-    public string Identifier => "MetaTypes.Reference";
+    public string Identifier => "MetaTypes.Attribute.Reference";
     
     public string Description => "Discovers types with [MetaType] attribute from referenced assemblies";
     
     public bool RequiresCrossAssembly => true;
     
-    public bool CanRun(Compilation compilation) => true;
-    
     public IEnumerable<DiscoveredType> Discover(Compilation compilation)
     {
         var discoveredTypes = new List<DiscoveredType>();
         
-        // Get all types from referenced assemblies
+        // get all types from all referenced assemblies
         var referencedTypes = GetAllTypesFromReferencedAssemblies(compilation);
-        
+
         foreach (var typeSymbol in referencedTypes)
         {
-            if (HasMetaTypeAttributeSymbol(typeSymbol))
+            if (HasMetaTypeAttributeSymbol(typeSymbol) == false)
             {
-                discoveredTypes.Add(new DiscoveredType
-                {
-                    TypeSymbol = typeSymbol,
-                    Source = DiscoverySource.Referenced,
-                    DiscoveredBy = new[] { Identifier },
-                    DiscoveryContexts = { [Identifier] = "MetaType attribute via assembly metadata" }
-                });
+                continue;
             }
+
+            discoveredTypes.Add(new DiscoveredType
+            {
+                TypeSymbol = typeSymbol,
+                Source = DiscoverySource.Referenced,
+                DiscoveredBy = [Identifier],
+                DiscoveryContexts = { [Identifier] = "MetaType attribute via assembly metadata" }
+            });
         }
         
         return discoveredTypes;
     }
     
-    /// <summary>
-    /// Checks if a type symbol has the [MetaType] attribute via symbol metadata.
-    /// </summary>
     private static bool HasMetaTypeAttributeSymbol(INamedTypeSymbol typeSymbol)
     {
         foreach (var attribute in typeSymbol.GetAttributes())
@@ -55,9 +53,6 @@ public class ReferencesDiscoveryMethod : IDiscoveryMethod
         return false;
     }
     
-    /// <summary>
-    /// Gets all types from referenced assemblies.
-    /// </summary>
     private static IEnumerable<INamedTypeSymbol> GetAllTypesFromReferencedAssemblies(Compilation compilation)
     {
         var types = new List<INamedTypeSymbol>();
@@ -77,9 +72,6 @@ public class ReferencesDiscoveryMethod : IDiscoveryMethod
         return types;
     }
     
-    /// <summary>
-    /// Recursively adds types from a namespace.
-    /// </summary>
     private static void AddTypesFromNamespace(INamespaceSymbol namespaceSymbol, List<INamedTypeSymbol> types)
     {
         foreach (var type in namespaceSymbol.GetTypeMembers())
@@ -93,9 +85,6 @@ public class ReferencesDiscoveryMethod : IDiscoveryMethod
         }
     }
     
-    /// <summary>
-    /// Checks if an assembly is a system assembly to skip during discovery.
-    /// </summary>
     private static bool IsSystemAssembly(string assemblyName)
     {
         return assemblyName.StartsWith("System.") || 

@@ -1,6 +1,6 @@
 using Microsoft.CodeAnalysis;
 
-namespace MetaTypes.Generator.Common;
+namespace MetaTypes.Generator.Discovery;
 
 /// <summary>
 /// Interface for pluggable discovery methods that can find types for MetaType generation.
@@ -33,10 +33,4 @@ public interface IDiscoveryMethod
     /// <returns>Collection of discovered types with discovery metadata.</returns>
     IEnumerable<DiscoveredType> Discover(Compilation compilation);
     
-    /// <summary>
-    /// Validates whether this discovery method can run in the current context.
-    /// </summary>
-    /// <param name="compilation">The compilation context.</param>
-    /// <returns>True if the method can run, false if it should be skipped.</returns>
-    bool CanRun(Compilation compilation);
 }
