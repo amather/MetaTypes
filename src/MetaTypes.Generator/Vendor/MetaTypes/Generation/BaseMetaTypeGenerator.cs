@@ -228,7 +228,23 @@ public static class BaseMetaTypeGenerator
                       namedType.ConstructedFrom.ToDisplayString().StartsWith("System.Collections.Generic.ICollection<") ||
                       namedType.ConstructedFrom.ToDisplayString().StartsWith("System.Collections.Generic.IEnumerable<"));
 
+        // check if enum or nullable enum
+        var isEnum = property.Type.TypeKind == TypeKind.Enum ||
+                     property.Type is INamedTypeSymbol namedTypeEnum &&
+                      namedTypeEnum.IsValueType &&
+                      namedTypeEnum.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T &&
+                      namedTypeEnum.TypeArguments.Length == 1 &&
+                      namedTypeEnum.TypeArguments[0].TypeKind == TypeKind.Enum;
+
+        // check if nullable
+        var isValueType = property.Type.IsValueType;
+        var isNullable = (isValueType && property.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T) ||
+                property.NullableAnnotation == NullableAnnotation.Annotated;
+
         sb.AppendLine($"    public bool IsList => {(isList ? "true" : "false")};");
+        sb.AppendLine($"    public bool IsEnum => {(isEnum ? "true" : "false")};");
+        sb.AppendLine($"    public bool IsNullable => {(isNullable ? "true" : "false")};");
+        sb.AppendLine($"    public bool IsValueType => {(isValueType ? "true" : "false")};");
 
         // Generic type arguments for lists
         if (isList && property.Type is INamedTypeSymbol listType && listType.TypeArguments.Length > 0)
