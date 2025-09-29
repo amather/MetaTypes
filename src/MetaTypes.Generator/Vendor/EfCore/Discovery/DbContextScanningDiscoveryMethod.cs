@@ -151,7 +151,7 @@ public class DbContextScanningDiscoveryMethod : IDiscoveryMethod
     {
         if (property.Type is INamedTypeSymbol namedType &&
             namedType.IsGenericType &&
-            namedType.ConstructedFrom.ToDisplayString() == "Microsoft.EntityFrameworkCore.DbSet<T>")
+            namedType.ConstructedFrom.ToDisplayString() == "Microsoft.EntityFrameworkCore.DbSet<TEntity>")
         {
             return true;
         }

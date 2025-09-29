@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace MetaTypes.Generator.Common.Generator
+namespace MetaTypes.Generator.Generator
 {
     /// <summary>
     /// Registry for discovering and managing vendor generators via reflection

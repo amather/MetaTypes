@@ -34,7 +34,7 @@ public static class BaseMetaTypeGenerator
         
         foreach (var typeSymbol in typeSymbols)
         {
-            sb.AppendLine($"        {typeSymbol.Name}MetaType.Instance,");
+            sb.AppendLine($"        {typeSymbol.ContainingAssembly.Name}.{typeSymbol.Name}MetaType.Instance,");
         }
         
         sb.AppendLine("    ];");

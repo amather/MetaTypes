@@ -7,6 +7,8 @@ using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using MetaTypes.Generator.Common.Generator;
 using MetaTypes.Generator.Discovery;
+using MetaTypes.Generator.Generator;
+using MetaTypes.Generator.Configuration;
 
 namespace MetaTypes.Generator.Common.Vendor.Statics.Generation
 {
@@ -51,8 +53,16 @@ namespace MetaTypes.Generator.Common.Vendor.Statics.Generation
         public IEnumerable<GeneratedFile> Generate(
             IEnumerable<DiscoveredType> discoveredTypes,
             Compilation compilation,
+            MetaTypesOptions config,
             GeneratorContext context)
         {
+
+            // we need base types
+            if (config.GenerateBaseMetaTypes == false)
+            {
+                yield break;
+            }
+
             // Check if base types are required and available
             var baseTypesAvailable = context.Properties.TryGetValue("BaseMetaTypesGenerated", out var baseGenerated) 
                 && bool.Parse(baseGenerated);

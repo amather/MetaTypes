@@ -1,9 +1,10 @@
 using System.Collections.Generic;
 using System.Text.Json;
+using MetaTypes.Generator.Configuration;
 using MetaTypes.Generator.Discovery;
 using Microsoft.CodeAnalysis;
 
-namespace MetaTypes.Generator.Common.Generator
+namespace MetaTypes.Generator.Generator
 {
     /// <summary>
     /// Interface for vendor-specific generators that extend the base MetaTypes with additional functionality
@@ -37,30 +38,18 @@ namespace MetaTypes.Generator.Common.Generator
         IEnumerable<GeneratedFile> Generate(
             IEnumerable<DiscoveredType> discoveredTypes,
             Compilation compilation,
+            MetaTypesOptions config,
             GeneratorContext context);
     }
     
-    /// <summary>
-    /// Represents a generated source file
-    /// </summary>
-    public class GeneratedFile
-    {
-        public string FileName { get; set; } = "";
-        public string Content { get; set; } = "";
-    }
     
     /// <summary>
     /// Context passed to vendor generators
     /// </summary>
     public class GeneratorContext
     {
-        public VendorConfiguration? Configuration { get; set; }
         public bool EnableDiagnostics { get; set; }
         public Dictionary<string, string> Properties { get; set; } = new();
-        
-        /// <summary>
-        /// The target namespace where the generator is running (for DI extension methods)
-        /// </summary>
         public string TargetNamespace { get; set; } = "";
     }
     

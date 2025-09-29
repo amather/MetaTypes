@@ -6,6 +6,8 @@ using System.Text.Json;
 using Microsoft.CodeAnalysis;
 using MetaTypes.Generator.Common.Generator;
 using MetaTypes.Generator.Discovery;
+using MetaTypes.Generator.Generator;
+using MetaTypes.Generator.Configuration;
 
 namespace MetaTypes.Generator.Common.Vendor.EfCore.Generation
 {
@@ -50,22 +52,17 @@ namespace MetaTypes.Generator.Common.Vendor.EfCore.Generation
         public IEnumerable<GeneratedFile> Generate(
             IEnumerable<DiscoveredType> discoveredTypes,
             Compilation compilation,
+            MetaTypesOptions config,
             GeneratorContext context)
         {
-            // Check if base types are required and available
-            var baseTypesAvailable = context.Properties.TryGetValue("BaseMetaTypesGenerated", out var baseGenerated) 
-                && bool.Parse(baseGenerated);
-                
-                
-            if (_config.RequireBaseTypes && !baseTypesAvailable)
+
+            // we need base types
+            if(config.GenerateBaseMetaTypes == false)
             {
-                // If base types are required but not available, skip vendor generation
-                // This prevents compilation errors when vendor extensions reference non-existent base classes
-                
                 yield break;
             }
 
-            // Filter to only types discovered by EfCore discovery methods
+            // filter to only types discovered by EfCore discovery methods
             var efCoreDiscoveredTypes = discoveredTypes
                 .Where(dt => dt.WasDiscoveredByPrefix("EfCore."))
                 .ToList();
@@ -81,10 +78,10 @@ namespace MetaTypes.Generator.Common.Vendor.EfCore.Generation
                 .Cast<INamedTypeSymbol>()
                 .ToList();
 
-            // Group entity types by their DbContext
+            // group discovered types (entities) by their DbContext
             var dbContextGroups = GroupEntitiesByDbContext(efCoreDiscoveredTypes);
             
-            // Generate EfCore DI extension methods for the target namespace (now includes DbContext registration)
+            // generate EfCore DI extension methods for the target namespace (now includes DbContext registration)
             var diExtensionsSource = GenerateEfCoreServiceCollectionExtensions(context.TargetNamespace, dbContextGroups);
             yield return new GeneratedFile
             {
@@ -92,7 +89,7 @@ namespace MetaTypes.Generator.Common.Vendor.EfCore.Generation
                 Content = diExtensionsSource
             };
             
-            // Generate DbContext implementation classes
+            // generate DbContext implementation classes
             foreach (var dbContextGroup in dbContextGroups)
             {
                 var dbContextSource = GenerateDbContextImplementation(dbContextGroup, context.TargetNamespace);
@@ -116,16 +113,13 @@ namespace MetaTypes.Generator.Common.Vendor.EfCore.Generation
             }
         }
         
-        /// <summary>
-        /// Groups entity types by their DbContext based on discovery context information.
-        /// </summary>
         private List<DbContextGroup> GroupEntitiesByDbContext(List<DiscoveredType> efCoreDiscoveredTypes)
         {
-            var groups = new Dictionary<string, DbContextGroup>();
+            Dictionary<string, DbContextGroup> groups = [];
             
             foreach (var discoveredType in efCoreDiscoveredTypes)
             {
-                // Try to extract DbContext information from discovery contexts
+                // DbContext Type discovery stored DbContext details in DiscoveryContexts. 
                 if (discoveredType.DiscoveryContexts.TryGetValue("DbContextName", out var contextName) &&
                     discoveredType.DiscoveryContexts.TryGetValue("DbContextType", out var contextType) &&
                     contextName != null && contextType != null)
@@ -277,6 +271,8 @@ namespace MetaTypes.Generator.Common.Vendor.EfCore.Generation
             // Generate partial class extensions for each member with EfCore interface
             foreach (var property in properties)
             {
+            //var assemblyName = typeSymbol.ContainingAssembly.Name;
+
                 sb.AppendLine($"public partial class {typeSymbol.Name}MetaTypeMember{property.Name} : IMetaTypeMemberEfCore");
                 sb.AppendLine("{");
                 
@@ -317,11 +313,9 @@ namespace MetaTypes.Generator.Common.Vendor.EfCore.Generation
                     return tableName;
                 }
             }
-            
-            // Default to pluralized type name
-            return typeSymbol.Name.EndsWith("s") ? typeSymbol.Name + "es" : 
-                   typeSymbol.Name.EndsWith("y") ? typeSymbol.Name.Substring(0, typeSymbol.Name.Length - 1) + "ies" :
-                   typeSymbol.Name + "s";
+
+            // default to class name
+            return typeSymbol.Name;
         }
 
         private static bool IsKeyProperty(IPropertySymbol property)
@@ -412,6 +406,11 @@ namespace MetaTypes.Generator.Common.Vendor.EfCore.Generation
             sb.AppendLine("        // Register DbContext metadata implementations");
             foreach (var dbContextGroup in dbContextGroups)
             {
+                if(dbContextGroup.ContextType == "UnknownContextType")
+                {
+                    // skip unknown context types
+                    continue;
+                }
                 sb.AppendLine($"        services.AddSingleton<IMetaTypesEfCoreDbContext>(new {dbContextGroup.ContextName}MetaTypesEfCoreDbContext());");
             }
             sb.AppendLine();
@@ -496,7 +495,7 @@ namespace MetaTypes.Generator.Common.Vendor.EfCore.Generation
     /// <summary>
     /// Represents a group of entity types that belong to the same DbContext.
     /// </summary>
-    public class DbContextGroup
+    internal class DbContextGroup
     {
         public string ContextName { get; set; } = string.Empty;
         public string ContextType { get; set; } = string.Empty;
@@ -506,6 +505,7 @@ namespace MetaTypes.Generator.Common.Vendor.EfCore.Generation
     /// <summary>
     /// Configuration for EfCore vendor generator
     /// </summary>
+    // TODO: any valueable configuration left?!
     public class EfCoreConfig
     {
         public bool RequireBaseTypes { get; set; } = true;

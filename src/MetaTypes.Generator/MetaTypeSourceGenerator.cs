@@ -133,11 +133,13 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
         var diExtensionsSource = BaseMetaTypeGenerator.GenerateServiceCollectionExtensions(targetNamespace);
         context.AddSource($"{fileNamespace}.MetaTypesServiceCollectionExtensions.g.cs", diExtensionsSource);
 
-        // generate individual MetaType classes in the target namespace
+        // generate individual MetaType classes 
         foreach (var typeSymbol in allTypeSymbols)
         {
-            var metaTypeSource = BaseMetaTypeGenerator.GenerateMetaTypeClass(typeSymbol, targetNamespace, allTypeSymbols, useCrossAssemblyReferences: true);
-            context.AddSource($"{fileNamespace}_{typeSymbol.Name}MetaType.g.cs", metaTypeSource);
+            var symbolNameSpace = NamespaceNameProvider.GetTargetNamespace(typeSymbol.ContainingAssembly.Name, config);
+            var symbolFileNameSpace = symbolNameSpace;
+            var metaTypeSource = BaseMetaTypeGenerator.GenerateMetaTypeClass(typeSymbol, symbolNameSpace, allTypeSymbols, useCrossAssemblyReferences: true);
+            context.AddSource($"{symbolFileNameSpace}_{typeSymbol.Name}MetaType.g.cs", metaTypeSource);
         }
 
     }
@@ -148,31 +150,43 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
         IList<DiscoveredType> discoveredTypes,
         SourceProductionContext context)
     {
-        // Get available vendors for diagnostics
-        var availableVendors = VendorGeneratorRegistry.GetAvailableVendorNames().ToList();
-        
-        // Get enabled vendor generators based on configuration
-        var vendorGenerators = VendorGeneratorRegistry.GetEnabledVendorGenerators(config.EnabledVendors);
-        var enabledVendorNames = vendorGenerators.Select(v => v.VendorName).ToList();
+        if(config.EnabledVendors == null || !config.EnabledVendors.Any())
+        {
+            // no vendors enabled
+            return;
+        }
 
-        // Add vendor diagnostics
+        // load all available vendor generators
+        var availableVendorGenerators = VendorDiscovery.DiscoverVendorGenerators();
+
+        var vendorGeneratorsToRun = availableVendorGenerators
+            .Where(x => config.EnabledVendors.Contains(x.VendorName, StringComparer.OrdinalIgnoreCase))
+            .ToList();
+
         if (config.EnableDiagnosticFiles)
         {
             context.AddSource("_VendorDiagnostic.g.cs", $@"
 // Vendor Generator Diagnostic
 // Generated at: {System.DateTime.Now}
 // 
-// Available Vendors: [{string.Join(", ", availableVendors)}]
-// Enabled Vendors: [{string.Join(", ", enabledVendorNames)}]
+// Available Vendors: [{string.Join(", ", availableVendorGenerators)}]
+// Enabled Vendors: [{string.Join(", ", config.EnabledVendors)}]
+// Vendors To Run: {vendorGeneratorsToRun.Count}
 // Vendor Configs: [{string.Join(", ", config.VendorConfigs?.Keys.ToArray() ?? Array.Empty<string>())}]
 ");
         }
 
-        foreach (var vendorGenerator in vendorGenerators)
+        if(vendorGeneratorsToRun.Count == 0)
+        {
+            return;
+        }
+
+
+        foreach (var vendorGenerator in vendorGeneratorsToRun)
         {
             try
             {
-                // Configure the vendor generator with its specific config
+                // configure the vendor generator with its specific config
                 System.Text.Json.JsonElement? vendorConfig = null;
                 if (config.VendorConfigs?.TryGetValue(vendorGenerator.VendorName, out var configValue) == true)
                 {
@@ -180,8 +194,7 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
                 }
                 vendorGenerator.Configure(vendorConfig);
                 
-                // Create context for vendor generator
-                // Use the compilation assembly name as the target namespace (where the generator runs)
+                // create context for vendor generator
                 var targetNamespace = NamespaceNameProvider.GetTargetNamespace(compilation, config);
                 var vendorContext = new GeneratorContext
                 {
@@ -193,9 +206,8 @@ public class MetaTypeSourceGenerator : IIncrementalGenerator
                     }
                 };
 
-                // Generate vendor-specific files
-                var generatedFiles = vendorGenerator.Generate(discoveredTypes, compilation, vendorContext);
-                
+                // generate vendor-specific files
+                var generatedFiles = vendorGenerator.Generate(discoveredTypes, compilation, config, vendorContext);
                 foreach (var file in generatedFiles)
                 {
                     context.AddSource(file.FileName, file.Content);
