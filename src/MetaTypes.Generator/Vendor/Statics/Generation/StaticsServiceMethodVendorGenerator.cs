@@ -15,11 +15,11 @@ namespace MetaTypes.Generator.Common.Vendor.Statics.Generation
     /// <summary>
     /// Statics vendor generator that generates partial class extensions with static service method metadata
     /// </summary>
-    public class StaticsVendorGenerator : IVendorGenerator
+    public class StaticsServiceMethodVendorGenerator : IVendorGenerator
     {
         private StaticsConfig _config = new();
         
-        public string VendorName => "Statics";
+        public string VendorName => "Statics.ServiceMethod";
         
         public string Description => "Generates Statics-specific metadata extensions for static service classes";
         

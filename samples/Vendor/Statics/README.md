@@ -148,9 +148,9 @@ The ServiceMethod sample will:
 
 ### Vendor Implementation (August 2025)
 - **Discovery Methods**: Both `StaticsServiceMethodDiscoveryMethod` supports syntax-based and cross-assembly discovery
-- **Vendor Generator**: `StaticsVendorGenerator` creates comprehensive method metadata
+- **Vendor Generator**: `StaticsServiceMethodVendorGenerator` creates comprehensive method metadata
 - **Abstractions**: Complete interface hierarchy in `MetaTypes.Abstractions.Vendor.Statics`
-- **Configuration**: Self-configuring vendor with `StaticsConfig` options
+- **Configuration**: Self-configuring vendor with `StaticsServiceMethodConfig` options
 
 ### Generated Code Structure
 - **Naming Convention**: `{AssemblyName}_{ClassName}MetaTypeStatics.g.cs`

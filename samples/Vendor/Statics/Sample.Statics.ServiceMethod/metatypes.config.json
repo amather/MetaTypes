@@ -7,10 +7,10 @@
     "Statics.ServiceMethod"
   ],
   "EnabledVendors": [
-    "Statics"
+    "Statics.ServiceMethod"
   ],
   "VendorConfigs": {
-    "Statics": {
+    "Statics.ServiceMethod": {
       "RequireBaseTypes": true,
       "IncludeParameterAttributes": true,
       "IncludeMethodAttributes": true

@@ -30,7 +30,7 @@ Statics/
     "Generation": { "BaseMetaTypes": true },
     "Discovery": {
       "CrossAssembly": true,
-      "Methods": ["Statics.StaticMethod"]
+      "Methods": ["Statics.ServiceMethod"]
     },
     "EnabledVendors": ["Statics"],
     "VendorConfigs": {

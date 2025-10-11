@@ -36,15 +36,16 @@ Samples:
 - `samples/Vendor/EfCore/Sample.EfCore.SingleProject/` - Single project showcase
 - `samples/Vendor/EfCore/Sample.EfCore.MultiProject/` - Multi-project scenario
 
-### Statics Vendor  
+### Statics Vendor
 📂 **[Statics Vendor Documentation](./samples/Vendor/Statics/CLAUDE.md)**
 
-Features (planned):
+Features:
 - Static method discovery across assemblies
 - Service pattern metadata generation
+- Repository generation with consistent async APIs
 - DI integration for static method collections
 
-Status: 🚧 In development
+Status: ✅ Complete
 
 ## Project Structure
 

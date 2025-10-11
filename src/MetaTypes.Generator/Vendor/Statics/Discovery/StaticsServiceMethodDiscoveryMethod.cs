@@ -11,8 +11,8 @@ namespace MetaTypes.Generator.Common.Vendor.Statics.Discovery;
 public class StaticsServiceMethodDiscoveryMethod : IDiscoveryMethod
 {
     public string Identifier => "Statics.ServiceMethod";
-    
-    public string Description => "Discovers static classes with static methods having StaticsServiceMethodAttribute";
+
+    public string Description => "Discovers static classes containing static methods with [StaticsServiceMethod] attribute";
     
     public bool RequiresCrossAssembly => false; // Supports both modes
     

@@ -11,7 +11,7 @@ public static class NamingUtils
 {
     /// <summary>
     /// Converts a simple string to PascalCase by capitalizing the first character.
-    /// Originally from StaticsVendorGenerator.cs for parameter name conversion.
+    /// Originally from StaticsServiceMethodVendorGenerator.cs for parameter name conversion.
     /// </summary>
     /// <param name="input">The input string to convert</param>
     /// <returns>PascalCase string</returns>
