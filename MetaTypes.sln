@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.0.11018.127 d18.0
+VisualStudioVersion = 18.0.11018.127
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{2231621B-5CDF-4191-8208-DB6F7AAB9A43}"
 EndProject
@@ -24,6 +24,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample.EfCore.Infrastructure", "samples\Vendor\EfCore\Sample.EfCore.Infrastructure\Sample.EfCore.Infrastructure.csproj", "{3A07C559-586E-B29A-40D7-EA9849B327D6}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample.Statics.ServiceMethod", "samples\Vendor\Statics\Sample.Statics.ServiceMethod\Sample.Statics.ServiceMethod.csproj", "{8AD99864-A3A6-ABD1-253F-7CECD851BD77}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample.Statics.Repository", "samples\Vendor\Statics\Sample.Statics.Repository\Sample.Statics.Repository.csproj", "{99F2FC3A-E39C-694F-C2B4-2D7BD818EEBA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -67,6 +69,10 @@ Global
 		{8AD99864-A3A6-ABD1-253F-7CECD851BD77}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8AD99864-A3A6-ABD1-253F-7CECD851BD77}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8AD99864-A3A6-ABD1-253F-7CECD851BD77}.Release|Any CPU.Build.0 = Release|Any CPU
+		{99F2FC3A-E39C-694F-C2B4-2D7BD818EEBA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{99F2FC3A-E39C-694F-C2B4-2D7BD818EEBA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{99F2FC3A-E39C-694F-C2B4-2D7BD818EEBA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{99F2FC3A-E39C-694F-C2B4-2D7BD818EEBA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -81,6 +87,7 @@ Global
 		{1C921A25-E42D-812C-B49E-A77C986263AE} = {3F1EBD86-1F19-4A28-8BB5-916342B2F011}
 		{3A07C559-586E-B29A-40D7-EA9849B327D6} = {3F1EBD86-1F19-4A28-8BB5-916342B2F011}
 		{8AD99864-A3A6-ABD1-253F-7CECD851BD77} = {3F1EBD86-1F19-4A28-8BB5-916342B2F011}
+		{99F2FC3A-E39C-694F-C2B4-2D7BD818EEBA} = {3F1EBD86-1F19-4A28-8BB5-916342B2F011}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {430996D9-D4D1-40F3-A1C8-F55A12DC1830}

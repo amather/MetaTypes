@@ -1,0 +1,10 @@
+{
+  "EnableDiagnosticFiles": true,
+  "GenerateBaseMetaTypes": true,
+  "DiscoverCrossAssembly": false,
+  "DiscoverMethods": [
+    "MetaTypes.Attribute.Syntax"
+  ],
+  "EnabledVendors": [],
+  "VendorConfigs": {}
+}
