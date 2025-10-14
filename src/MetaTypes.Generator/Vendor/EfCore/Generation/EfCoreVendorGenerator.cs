@@ -103,13 +103,33 @@ namespace MetaTypes.Generator.Common.Vendor.EfCore.Generation
             // Generate EfCore extensions for each discovered entity type
             foreach (var entityType in efCoreTypes)
             {
-                var source = GenerateEfCoreExtension(entityType);
+                var source = GenerateEfCoreExtension(entityType, _config.GenerateKeyStructs);
                 var assemblyName = entityType.ContainingAssembly.Name;
                 yield return new GeneratedFile
                 {
                     FileName = $"{assemblyName}_{entityType.Name}MetaTypeEfCore.g.cs",
                     Content = source
                 };
+                
+                // Generate key struct if configured and entity has keys
+                if (_config.GenerateKeyStructs)
+                {
+                    var properties = entityType.GetMembers().OfType<IPropertySymbol>()
+                        .Where(p => p.DeclaredAccessibility == Accessibility.Public && !p.IsStatic)
+                        .ToArray();
+                    var keyProperties = properties.Where(p => IsKeyProperty(p)).ToArray();
+                    
+                    if (keyProperties.Length > 0)
+                    {
+                        var keyStructSource = EfCoreKeyStructGenerator.GenerateKeyStruct(entityType, keyProperties);
+                        var entityNamespace = entityType.ContainingNamespace.ToDisplayString();
+                        yield return new GeneratedFile
+                        {
+                            FileName = $"{entityNamespace}_{entityType.Name}_Key.g.cs",
+                            Content = keyStructSource
+                        };
+                    }
+                }
             }
         }
         
@@ -228,7 +248,7 @@ namespace MetaTypes.Generator.Common.Vendor.EfCore.Generation
             return sb.ToString();
         }
 
-        private string GenerateEfCoreExtension(INamedTypeSymbol typeSymbol)
+        private string GenerateEfCoreExtension(INamedTypeSymbol typeSymbol, bool generateKeyStructs)
         {
             var sb = new StringBuilder();
             
@@ -264,6 +284,17 @@ namespace MetaTypes.Generator.Common.Vendor.EfCore.Generation
                 sb.AppendLine($"        {typeSymbol.Name}MetaTypeMember{keyProperty.Name}.Instance,");
             }
             sb.AppendLine("    ];");
+            
+            // KeyType property
+            if (generateKeyStructs && keyProperties.Length > 0)
+            {
+                var entityNamespace = typeSymbol.ContainingNamespace.ToDisplayString();
+                sb.AppendLine($"    public Type? KeyType => typeof({entityNamespace}.{typeSymbol.Name}Key);");
+            }
+            else
+            {
+                sb.AppendLine("    public Type? KeyType => null;");
+            }
             
             sb.AppendLine("}");
             sb.AppendLine();
@@ -511,5 +542,6 @@ namespace MetaTypes.Generator.Common.Vendor.EfCore.Generation
         public bool RequireBaseTypes { get; set; } = true;
         public bool IncludeNavigationProperties { get; set; } = true;
         public bool IncludeForeignKeys { get; set; } = true;
+        public bool GenerateKeyStructs { get; set; } = true;
     }
 }

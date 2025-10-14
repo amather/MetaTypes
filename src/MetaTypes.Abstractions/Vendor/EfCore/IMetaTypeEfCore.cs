@@ -14,4 +14,10 @@ public interface IMetaTypeEfCore
     /// Gets the primary key members for this entity type.
     /// </summary>
     IReadOnlyList<IMetaTypeMemberEfCore> Keys { get; }
+
+    /// <summary>
+    /// Gets the Type of the generated key struct, or null if entity has no keys or key generation is disabled.
+    /// The key type implements IEntityKey<TEntity>.
+    /// </summary>
+    Type? KeyType { get; }
 }
