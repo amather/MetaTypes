@@ -23,8 +23,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample.EfCore.MultiProject"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample.EfCore.Infrastructure", "samples\Vendor\EfCore\Sample.EfCore.Infrastructure\Sample.EfCore.Infrastructure.csproj", "{3A07C559-586E-B29A-40D7-EA9849B327D6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample.Statics.ServiceMethod", "samples\Vendor\Statics\Sample.Statics.ServiceMethod\Sample.Statics.ServiceMethod.csproj", "{8AD99864-A3A6-ABD1-253F-7CECD851BD77}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample.Statics.Repository", "samples\Vendor\Statics\Sample.Statics.Repository\Sample.Statics.Repository.csproj", "{99F2FC3A-E39C-694F-C2B4-2D7BD818EEBA}"
 EndProject
 Global
@@ -65,10 +63,6 @@ Global
 		{3A07C559-586E-B29A-40D7-EA9849B327D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3A07C559-586E-B29A-40D7-EA9849B327D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3A07C559-586E-B29A-40D7-EA9849B327D6}.Release|Any CPU.Build.0 = Release|Any CPU
-		{8AD99864-A3A6-ABD1-253F-7CECD851BD77}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8AD99864-A3A6-ABD1-253F-7CECD851BD77}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8AD99864-A3A6-ABD1-253F-7CECD851BD77}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8AD99864-A3A6-ABD1-253F-7CECD851BD77}.Release|Any CPU.Build.0 = Release|Any CPU
 		{99F2FC3A-E39C-694F-C2B4-2D7BD818EEBA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{99F2FC3A-E39C-694F-C2B4-2D7BD818EEBA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{99F2FC3A-E39C-694F-C2B4-2D7BD818EEBA}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -86,7 +80,6 @@ Global
 		{D49C97DE-8736-8ADA-59BC-5198D318B8D5} = {3F1EBD86-1F19-4A28-8BB5-916342B2F011}
 		{1C921A25-E42D-812C-B49E-A77C986263AE} = {3F1EBD86-1F19-4A28-8BB5-916342B2F011}
 		{3A07C559-586E-B29A-40D7-EA9849B327D6} = {3F1EBD86-1F19-4A28-8BB5-916342B2F011}
-		{8AD99864-A3A6-ABD1-253F-7CECD851BD77} = {3F1EBD86-1F19-4A28-8BB5-916342B2F011}
 		{99F2FC3A-E39C-694F-C2B4-2D7BD818EEBA} = {3F1EBD86-1F19-4A28-8BB5-916342B2F011}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution

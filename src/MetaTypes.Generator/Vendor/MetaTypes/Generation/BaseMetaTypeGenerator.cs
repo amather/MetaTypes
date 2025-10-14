@@ -133,7 +133,7 @@ public static class BaseMetaTypeGenerator
             {
                 if (attr.AttributeClass != null && attr.ConstructorArguments.Length == 0)
                 {
-                    sb.AppendLine($"        new {attr.AttributeClass.ToDisplayString()}(),");
+                    sb.AppendLine($"        new global::{attr.AttributeClass.ToDisplayString()}(),");
                 }
             }
             sb.AppendLine("    ];");
@@ -272,7 +272,7 @@ public static class BaseMetaTypeGenerator
             {
                 if (attr.AttributeClass != null && attr.ConstructorArguments.Length == 0)
                 {
-                    sb.AppendLine($"        new {attr.AttributeClass.ToDisplayString()}(),");
+                    sb.AppendLine($"        new global::{attr.AttributeClass.ToDisplayString()}(),");
                 }
             }
             sb.AppendLine("    ];");

@@ -19,8 +19,8 @@ public class StaticsRepositoryDiagnosticProvider : IDiagnosticAnalyzerProvider
 
     public IEnumerable<DiagnosticDescriptor> SupportedDiagnostics => new[]
     {
-        StaticsDiagnostics.MTSTAT0100_RepositoryProviderOnNonDbContext,
-        StaticsDiagnostics.MTSTAT0101_RepositoryIgnoreOnNonDbSet,
+        StaticsDiagnostics.MTSTAT0001_RepositoryProviderOnNonDbContext,
+        StaticsDiagnostics.MTSTAT0002_RepositoryIgnoreOnNonDbSet,
     };
 
     public void Analyze(
@@ -50,7 +50,7 @@ public class StaticsRepositoryDiagnosticProvider : IDiagnosticAnalyzerProvider
         if (!InheritsFromDbContext(typeSymbol))
         {
             var diagnostic = Diagnostic.Create(
-                StaticsDiagnostics.MTSTAT0100_RepositoryProviderOnNonDbContext,
+                StaticsDiagnostics.MTSTAT0001_RepositoryProviderOnNonDbContext,
                 typeSymbol.Locations[0],
                 typeSymbol.Name);
             context.ReportDiagnostic(diagnostic);
@@ -76,7 +76,7 @@ public class StaticsRepositoryDiagnosticProvider : IDiagnosticAnalyzerProvider
                     if (!IsDbSetProperty(propertySymbol))
                     {
                         var diagnostic = Diagnostic.Create(
-                            StaticsDiagnostics.MTSTAT0101_RepositoryIgnoreOnNonDbSet,
+                            StaticsDiagnostics.MTSTAT0002_RepositoryIgnoreOnNonDbSet,
                             propertySymbol.Locations[0],
                             propertySymbol.Name);
                         context.ReportDiagnostic(diagnostic);
