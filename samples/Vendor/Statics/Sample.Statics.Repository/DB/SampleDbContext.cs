@@ -16,7 +16,6 @@ public class SampleDbContext : DbContext
     [StaticsRepositoryIgnore]
     public DbSet<AuditLog> AuditLog { get; set; } = null!;
 
-
     public SampleDbContext(DbContextOptions<SampleDbContext> options)
         : base(options)
     {

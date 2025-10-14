@@ -20,5 +20,9 @@
 		<Compile Include="../MetaTypes.Abstractions/**/*.cs" Exclude="../MetaTypes.Abstractions/obj/**/*.cs;../MetaTypes.Abstractions/bin/**/*.cs;../MetaTypes.Abstractions/ServiceCollectionExtensions.cs;../MetaTypes.Abstractions/ServiceProviderExtensions.cs" LinkBase="Abstractions" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+		<AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+	</ItemGroup>
 
 </Project>

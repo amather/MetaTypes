@@ -18,7 +18,7 @@ namespace MetaTypes.Generator.Common.Vendor.Statics.Generation
     public class StaticsServiceMethodVendorGenerator : IVendorGenerator
     {
         private StaticsConfig _config = new();
-        
+
         public string VendorName => "Statics.ServiceMethod";
         
         public string Description => "Generates Statics-specific metadata extensions for static service classes";

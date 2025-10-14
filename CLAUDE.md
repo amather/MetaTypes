@@ -66,6 +66,42 @@ Status: ✅ Complete
 4. **Vendor Folder Structure** - Consistent vendor pattern across all projects
 5. **Pluggable Vendor System** - Vendor-agnostic core with specialized extensions
 6. **Repository Generation** - Statics vendor generates repositories with consistent async APIs
+7. **Diagnostic Analyzers** - Roslyn analyzers validate attribute usage at design time
+
+## Diagnostic Analyzers
+
+MetaTypes includes Roslyn diagnostic analyzers that validate attribute usage and configuration in real-time within the IDE. Diagnostics are vendor-specific and automatically enabled based on the discovery methods configured in `metatypes.config.json`.
+
+### Key Features
+
+- **Real-time Validation** - Errors and warnings appear as you type in the IDE
+- **Vendor-Specific** - Each vendor defines its own diagnostic rules
+- **Configuration-Based** - Diagnostics are enabled when their corresponding discovery method is active
+- **Standard Suppression** - Use `#pragma warning disable MTXXX` or `.editorconfig` to suppress warnings
+
+### Diagnostic ID Convention
+
+All diagnostic IDs follow the pattern: `MT{VendorPrefix}{Number}`
+
+Examples:
+- `MTSTAT0001` - Statics vendor diagnostics
+- `MTEFCORE0001` - EfCore vendor diagnostics
+
+### Release Tracking
+
+**IMPORTANT**: When adding, modifying, or removing diagnostic rules:
+
+1. **Update `AnalyzerReleases.Unshipped.md`** - Add new rules to this file during development
+2. **Update diagnostic descriptor files** - Add the new `DiagnosticDescriptor` in the vendor's diagnostics file (e.g., `StaticsDiagnostics.cs`, `EfCoreDiagnostics.cs`)
+3. **Update `DIAGNOSTICS.md`** - Document the new diagnostic in the comprehensive diagnostics documentation
+
+When releasing a new version:
+- Move entries from `AnalyzerReleases.Unshipped.md` to `AnalyzerReleases.Shipped.md`
+- Create a new release section with the version number
+
+These files are required by the Roslyn analyzer infrastructure and must be maintained correctly to avoid build warnings (RS2008).
+
+For complete diagnostic documentation, see **[Diagnostics Guide](./docs/DIAGNOSTICS.md)**.
 
 ## Generated DI Extension Methods
 
@@ -146,6 +182,7 @@ Basic project setup with `metatypes.config.json`:
 
 - **[Complete Documentation](./docs/README.md)** - Architecture, configuration, and API reference
 - **[Configuration Guide](./CONFIG.md)** - Detailed configuration options
+- **[Diagnostics Guide](./docs/DIAGNOSTICS.md)** - Diagnostic analyzer infrastructure and rules
 - **[Migration Guide](./MIGRATION.md)** - Upgrading from previous versions
 
 ## Build Commands
