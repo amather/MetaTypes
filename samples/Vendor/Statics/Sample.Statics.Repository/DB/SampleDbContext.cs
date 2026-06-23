@@ -7,7 +7,7 @@ namespace Sample.Statics.Repository.DB;
 /// <summary>
 /// Sample DbContext for the Statics.Repository sample
 /// </summary>
-[StaticsRepositoryProvider]
+[StaticsRepositoryProvider(MapApi = true)]
 public class SampleDbContext : DbContext
 {
     public DbSet<User> Users { get; set; } = null!;
